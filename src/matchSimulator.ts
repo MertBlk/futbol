@@ -37,18 +37,18 @@ export class MatchSimulator {
   }
 
   private calculateGoalProbability(player: Player, minute: number): number {
-    let baseProb = (player.rating + player.offense) / 2000; // 0-0.1 arası
+    let baseProb = (player.rating + player.offense) / 10000; // 0-0.02 arası
     
     // Pozisyona göre artırım
-    if (player.position === 'FWD') baseProb *= 3;
-    else if (player.position === 'MID') baseProb *= 1.5;
-    else if (player.position === 'DEF') baseProb *= 0.3;
-    else baseProb *= 0.1; // Kaleci
+    if (player.position === 'FWD') baseProb *= 2.5;
+    else if (player.position === 'MID') baseProb *= 1.2;
+    else if (player.position === 'DEF') baseProb *= 0.2;
+    else baseProb *= 0.05; // Kaleci
 
     // Son dakikalarda artış
-    if (minute > 80) baseProb *= 1.2;
+    if (minute > 80) baseProb *= 1.3;
     
-    return Math.min(baseProb, 0.02); // Max %2 şans
+    return Math.min(baseProb, 0.008); // Max %0.8 şans
   }
 
   private simulateMinute(minute: number): void {
@@ -115,7 +115,7 @@ export class MatchSimulator {
     season: number = 2024
   ): Promise<MatchResult> {
     try {
-      console.log('Takım kadroları yükleniyor...');
+      console.log('📥 Takım kadroları yükleniyor...');
       
       const [team1, team2] = await Promise.all([
         this.api.getTeamSquad(team1Id, season),
@@ -126,9 +126,7 @@ export class MatchSimulator {
       this.team2 = team2;
       this.resetMatch();
 
-      console.log(`${team1.name} vs ${team2.name} (${season} sezonu)`);
-      console.log(`${team1.name}: ${team1.players.length} oyuncu`);
-      console.log(`${team2.name}: ${team2.players.length} oyuncu`);
+      console.log(`⚽ ${team1.name} vs ${team2.name} (${season} sezonu)`);
 
       // 90 dakika simülasyonu
       for (let minute = 1; minute <= 90; minute++) {
@@ -162,7 +160,7 @@ export class MatchSimulator {
     }
   }
 
-  async quickMatch(team1Name: string, team2Name: string, season: number = 2024): Promise<MatchResult> {
+  async quickMatch(team1Name: string, team2Name: string, season: number = 2022): Promise<MatchResult> {
     try {
       // Takım arama
       const [team1Results, team2Results] = await Promise.all([
@@ -183,7 +181,7 @@ export class MatchSimulator {
 
       return await this.simulateMatch(team1Id, team2Id, season);
     } catch (error) {
-      console.error('Hızlı maç hatası:', error);
+      console.error('❌ Hızlı maç hatası:', error);
       throw error;
     }
   }

@@ -9,19 +9,26 @@ export class FootballApi {
   }
 
   private async makeRequest(endpoint: string): Promise<any> {
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      headers: {
-        'X-RapidAPI-Key': this.apiKey,
-        'X-RapidAPI-Host': 'v3.football.api-sports.io'
+    const url = `${this.baseUrl}${endpoint}`;
+    
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'X-RapidAPI-Key': this.apiKey,
+          'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-    });
 
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      const data = await response.json();
+      return data.response;
+    } catch (error) {
+      console.error('❌ API request failed:', error);
+      throw error;
     }
-
-    const data = await response.json();
-    return data.response;
   }
 
   private convertPosition(apiPosition: string): 'GK' | 'DEF' | 'MID' | 'FWD' {
@@ -97,7 +104,7 @@ export class FootballApi {
         year: season
       };
     } catch (error) {
-      console.error('API Error:', error);
+      console.error('❌ API Error:', error);
       throw error;
     }
   }
@@ -123,7 +130,7 @@ export class FootballApi {
       return data.sort((a: number, b: number) => b - a); // En yeni sezonlar önce
     } catch (error) {
       console.error('Seasons error:', error);
-      return [2024, 2023, 2022, 2021, 2020]; // Fallback
+      return [2024, 2023, 2022, 2021, 2020, 2019]; // Fallback
     }
   }
 }
