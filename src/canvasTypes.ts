@@ -3,13 +3,25 @@ export interface Player2D {
   name: string;
   x: number;
   y: number;
+  baseX: number; // Başlangıç/formasyondaki pozisyon
+  baseY: number;
   team: 'home' | 'away';
   position: 'GK' | 'DEF' | 'MID' | 'FWD';
+  role: string; // goalkeeper, centerback, winger vs.
   targetX: number;
   targetY: number;
-  speed: number;
+  vx: number; // Hız vektörleri
+  vy: number;
+  speed: number; // Mevcut hız
+  maxSpeed: number; // Maksimum hız
+  acceleration: number; // İvme
+  deceleration: number; // Yavaşlama
   color: string;
   hasBall: boolean;
+  stamina: number; // Kondisyon (0-100)
+  skill: number; // Yetenek seviyesi (0-100)
+  aggression: number; // Agresiflik (0-100)
+  lastAction: number; // Son hareket zamanı
 }
 
 export interface Ball {
@@ -30,7 +42,7 @@ export interface Goal {
 
 export interface MatchEvent2D {
   minute: number;
-  type: 'goal' | 'card' | 'substitution';
+  type: 'goal' | 'card' | 'substitution' | 'info';
   team: 'home' | 'away';
   player?: string;
   description: string;

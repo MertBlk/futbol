@@ -169,174 +169,378 @@
             display: none;
         }
 
-        /* Canvas Styles */
-        .canvas-container {
+        /* Match Container - Tam genişlik */
+        .match-container {
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             border-radius: 20px;
-            padding: 25px;
-            margin: 30px 0;
-            text-align: center;
+            padding: 20px;
+            margin: 20px 0;
             color: white;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            min-height: 80vh;
         }
 
-        .canvas-header h3 {
+        .match-header {
+            text-align: center;
             margin-bottom: 20px;
-            font-size: 1.5rem;
-            color: #fff;
         }
 
-        #footballCanvas {
-            border: 4px solid #fff;
-            border-radius: 15px;
-            background: linear-gradient(45deg, #2e8b57, #3cb371);
-            display: block;
-            margin: 0 auto 20px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        .match-header h3 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
         }
 
-        .canvas-controls {
-            margin: 20px 0;
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-
-        .canvas-controls .btn {
-            padding: 12px 25px;
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        .canvas-controls .season-select {
-            padding: 12px 15px;
-            font-size: 14px;
-            border-radius: 8px;
-            border: none;
-            background: white;
-            color: #333;
-        }
-
-        .match-info {
+        .team-names {
             display: flex;
             justify-content: space-between;
             align-items: center;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 15px;
-            padding: 15px 25px;
-            margin-top: 20px;
+            padding: 15px 30px;
+            margin-bottom: 20px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
-        .canvas-score {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #fff;
-        }
-
-        .canvas-time {
+        .team-name {
             font-size: 1.2rem;
-            color: #fff;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 8px 15px;
-            border-radius: 20px;
-        }
-
-        .results {
-            display: none;
-        }
-
-        .match-result {
-            background: #f8f9fa;
-            border-radius: 15px;
-            padding: 30px;
-            margin-bottom: 30px;
+            font-weight: bold;
+            flex: 1;
             text-align: center;
         }
 
-        .score {
-            font-size: 3rem;
+        .live-score {
+            font-size: 2.5rem;
             font-weight: bold;
-            color: #28a745;
-            margin-bottom: 20px;
+            margin: 0 30px;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
 
-        .events-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 30px;
+        /* Ana Oyun Alanı - Yatay Layout */
+        .game-layout {
+            display: flex;
+            gap: 20px;
+            height: calc(80vh - 150px);
+            min-height: 500px;
         }
 
-        .events, .stats {
-            background: #f8f9fa;
+        /* Sol Panel - Events & Stats */
+        .left-panel {
+            width: 350px;
+            min-width: 350px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: rgba(255, 255, 255, 0.05);
             border-radius: 15px;
-            padding: 25px;
+            padding: 20px;
+            overflow: hidden;
         }
 
-        .events h3, .stats h3 {
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 1.3rem;
+        /* Zaman Paneli */
+        .time-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .match-time {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 5px;
+        }
+
+        .match-status {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        /* Events Panel */
+        .events-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            min-height: 300px;
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 15px;
+            color: #ffd700;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 10px;
+        }
+
+        .events-stream {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .events-stream::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .events-stream::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .events-stream::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
         }
 
         .event-item {
-            padding: 8px 0;
-            border-bottom: 1px solid #e0e0e0;
-            font-size: 0.95rem;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            border-left: 4px solid #ffd700;
+            animation: slideInLeft 0.3s ease-out;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
-        .event-item:last-child {
-            border-bottom: none;
+        .event-item.goal {
+            border-left-color: #ff4444;
+            background: rgba(255, 68, 68, 0.25);
         }
 
-        @media (max-width: 768px) {
-            .team-selection {
-                grid-template-columns: 1fr;
-                gap: 20px;
+        .event-item.info {
+            border-left-color: #44ff44;
+            background: rgba(68, 255, 68, 0.15);
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
             }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
 
-            .vs-divider {
+        /* Stats Panel */
+        .stats-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        .stats-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        /* Canvas Alanı */
+        .canvas-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        #footballCanvas {
+            width: 100%;
+            height: 100%;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            background: linear-gradient(135deg, #1a5d1a 0%, #0d4b0d 100%);
+        }
+
+        /* Canvas Kontrolleri */
+        .canvas-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .control-button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+            min-width: 120px;
+        }
+
+        .control-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+            background: linear-gradient(135deg, #ff8a5b 0%, #f7a53e 100%);
+        }
+
+        .control-button:active {
+            transform: translateY(0);
+            box-shadow: 0 3px 10px rgba(255, 107, 53, 0.3);
+        }
+
+        .control-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .control-button.secondary {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, 
+                                     rgba(255, 255, 255, 0.1) 100%);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-button.secondary:hover {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, 
+                                     rgba(255, 255, 255, 0.2) 100%);
+            border-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Responsive Tasarım */
+        @media (max-width: 1200px) {
+            .match-container {
+                padding: 15px;
+            }
+            
+            .game-layout {
+                gap: 15px;
+            }
+            
+            .left-panel {
+                width: 320px;
+            }
+            
+            .canvas-area {
+                padding: 15px;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .game-layout {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .left-panel {
+                width: 100%;
+                max-height: 300px;
+            }
+            
+            .match-header {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .team-info {
+                width: 100%;
+                max-width: 200px;
+            }
+            
+            .match-details {
                 order: -1;
             }
-
-            .events-section {
-                grid-template-columns: 1fr;
+            
+            .canvas-area {
+                min-height: 400px;
             }
-
-            .controls {
-                flex-direction: column;
-                align-items: center;
+            
+            .control-button {
+                padding: 10px 18px;
+                font-size: 0.9rem;
+                min-width: 100px;
             }
+        }
 
-            .header h1 {
+        @media (max-width: 600px) {
+            .match-container {
+                padding: 10px;
+            }
+            
+            .left-panel {
+                padding: 15px;
+            }
+            
+            .canvas-area {
+                padding: 15px;
+            }
+            
+            .team-name {
+                font-size: 1.2rem;
+            }
+            
+            .team-score {
                 font-size: 2rem;
             }
-
-            .score {
+            
+            .match-time {
                 font-size: 2rem;
-            }
-
-            #footballCanvas {
-                width: 100%;
-                max-width: 400px;
-                height: 200px;
             }
             
             .canvas-controls {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .match-info {
-                flex-direction: column;
                 gap: 10px;
             }
             
-            .canvas-score {
-                font-size: 1.5rem;
+            .control-button {
+                padding: 8px 16px;
+                font-size: 0.8rem;
+                min-width: 80px;
+            }
+            
+            .events-panel {
+                min-height: 200px;
             }
         }
+    </style>
+       
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚽ Futbol Maç Simülatörü</h1>
+            <p>Favori takımlarınızı seçin ve gerçekçi maç simülasyonu yaşayın!</p>
+        </div>
     </style>
 </head>
 <body>
@@ -362,320 +566,102 @@
             </div>
 
             <div class="controls">
-                <select class="season-select" id="season">
-                    <option value="2024">2024 Sezonu</option>
-                    <option value="2023">2023 Sezonu</option>
-                    <option value="2022">2022 Sezonu</option>
-                    <option value="2021">2021 Sezonu</option>
-                </select>
-                
-                <button class="btn btn-primary" id="simulateBtn">
-                    🎮 Maçı Simüle Et
+                <button class="btn btn-primary" id="startMatchBtn">
+                    🎮 Maçı Başlat
                 </button>
                 
                 <button class="btn btn-secondary" id="randomBtn">
                     🎲 Rastgele Takımlar
                 </button>
+                
+                <button class="btn btn-secondary" id="pauseBtn">
+                    ⏸️ Duraklat
+                </button>
+                
+                <select id="speedSelect" class="season-select">
+                    <option value="1">Normal Hız</option>
+                    <option value="2">Hızlı</option>
+                    <option value="3">Çok Hızlı</option>
+                </select>
             </div>
 
-            <div class="error" id="errorMsg"></div>
+            <!-- Match container'ı değiştir -->
+                        <!-- Match Container - Yatay Layout -->
 
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <p>Maç simüle ediliyor... ⚽</p>
-            </div>
-
-            <!-- Canvas Container -->
-            <div class="canvas-container" id="canvasContainer">
-                <div class="canvas-header">
-                    <h3>🎮 Canlı Maç Simülasyonu</h3>
-                </div>
-                <canvas id="footballCanvas" width="800" height="400"></canvas>
-                <div class="canvas-controls">
-                    <button class="btn btn-primary" id="startCanvasBtn">🎮 Maçı Başlat</button>
-                    <button class="btn btn-secondary" id="pauseCanvasBtn">⏸️ Duraklat</button>
-                    <select id="speedSelect" class="season-select">
-                        <option value="1">Normal Hız</option>
-                        <option value="2">Hızlı</option>
-                        <option value="3">Çok Hızlı</option>
-                    </select>
-                </div>
-                <div class="match-info">
-                    <div id="canvasScore" class="canvas-score">0 - 0</div>
-                    <div id="canvasTime" class="canvas-time">0'</div>
-                </div>
-            </div>
-
-            <div class="results" id="results">
-                <div class="match-result">
-                    <div class="score" id="finalScore">Real Madrid 2 - 1 Barcelona</div>
+            <!-- Match Container - Yatay Layout -->
+            <div class="match-container" id="matchContainer">
+                <!-- Üst başlık -->
+                <div class="match-header">
+                    <h3>�️ Canlı Maç</h3>
+                    <div class="team-names">
+                        <div class="team-name" id="homeTeamName">Real Madrid</div>
+                        <div class="live-score" id="canvasScore">0 - 0</div>
+                        <div class="team-name" id="awayTeamName">Barcelona</div>
+                    </div>
                 </div>
 
-                <div class="events-section">
-                    <div class="events">
-                        <h3>📋 Maç Olayları</h3>
-                        <div id="eventsList"></div>
+                <!-- Ana oyun alanı - yatay layout -->
+                <div class="game-layout">
+                    <!-- Sol Panel - Events & Stats -->
+                    <div class="left-panel">
+                        <!-- Zaman ve Durum -->
+                        <div class="time-panel">
+                            <div class="match-time" id="canvasTime">0'</div>
+                            <div class="match-status" id="matchStatus">Maçı Başlatın</div>
+                        </div>
+
+                        <!-- Canlı Olaylar -->
+                        <div class="events-panel">
+                            <div class="panel-title">📋 Canlı Olaylar</div>
+                            <div id="eventsList" class="events-stream"></div>
+                        </div>
+
+                        <!-- İstatistikler -->
+                        <div class="stats-panel">
+                            <div class="panel-title">📊 İstatistikler</div>
+                            <div class="stats-grid">
+                                <div class="stat-row">
+                                    <span class="stat-label">🎯 Şutlar</span>
+                                    <span class="stat-value"><span id="homeShots">0</span> - <span id="awayShots">0</span></span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">🏃 Hakimiyet</span>
+                                    <span class="stat-value"><span id="homePossession">50</span>% - <span id="awayPossession">50</span>%</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">🟨 Kartlar</span>
+                                    <span class="stat-value"><span id="homeCards">0</span> - <span id="awayCards">0</span></span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">🚩 Kornerler</span>
+                                    <span class="stat-value"><span id="homeCorners">0</span> - <span id="awayCorners">0</span></span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="stats">
-                        <h3>📊 Maç İstatistikleri</h3>
-                        <div id="statsList"></div>
+                    <!-- Sağ Taraf - Canvas Alanı -->
+                    <div class="canvas-area">
+                        <canvas id="footballCanvas"></canvas>
+                        
+                        <!-- Canvas kontrolleri -->
+                        <div class="canvas-controls">
+                            <button class="control-button secondary" id="canvasPauseBtn">⏸️ Duraklat</button>
+                            <select id="canvasSpeedSelect" class="control-button secondary">
+                                <option value="1">Normal Hız</option>
+                                <option value="2">2x Hızlı</option>
+                                <option value="3">3x Hızlı</option>
+                            </select>
+                            <button class="control-button secondary" id="canvasResetBtn">🔄 Yeniden Başlat</button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
-console.log('🔍 JavaScript başlıyor...');
+    <!-- JavaScript logic moved to TypeScript modules in src/web.ts -->
 
-// Basit maç simülatörü
-function simulateMatch(team1, team2) {
-    const score1 = Math.floor(Math.random() * 4);
-    const score2 = Math.floor(Math.random() * 4);
-    
-    const events = [
-        `⚽ ${Math.floor(Math.random() * 90)}' - ${team1} gol!`,
-        `⚽ ${Math.floor(Math.random() * 90)}' - ${team2} gol!`,
-        `🟨 ${Math.floor(Math.random() * 90)}' - Sarı kart`,
-        `🔄 ${Math.floor(Math.random() * 90)}' - Oyuncu değişikliği`
-    ];
-    
-    return {
-        score: `${team1} ${score1} - ${score2} ${team2}`,
-        events: events.slice(0, Math.floor(Math.random() * 4) + 2)
-    };
-}
-
-// Canvas futbol sahası
-function drawField(canvas) {
-    const ctx = canvas.getContext('2d');
-    const w = canvas.width;
-    const h = canvas.height;
-    
-    // Zemin
-    ctx.fillStyle = '#228B22';
-    ctx.fillRect(0, 0, w, h);
-    
-    // Çizgiler
-    ctx.strokeStyle = '#FFF';
-    ctx.lineWidth = 3;
-    
-    // Dış çerçeve
-    ctx.strokeRect(10, 10, w-20, h-20);
-    
-    // Orta çizgi
-    ctx.beginPath();
-    ctx.moveTo(w/2, 10);
-    ctx.lineTo(w/2, h-10);
-    ctx.stroke();
-    
-    // Orta daire
-    ctx.beginPath();
-    ctx.arc(w/2, h/2, 50, 0, 2*Math.PI);
-    ctx.stroke();
-    
-    // Kaleler
-    ctx.strokeRect(10, h/2-40, 30, 80);
-    ctx.strokeRect(w-40, h/2-40, 30, 80);
-    
-    // Ceza sahaları
-    ctx.strokeRect(10, h/2-80, 80, 160);
-    ctx.strokeRect(w-90, h/2-80, 80, 160);
-}
-
-// Animasyonlu oyuncular
-let playerPositions = [];
-let ballPosition = { x: 400, y: 200 };
-let animationRunning = false;
-
-function initPlayers() {
-    playerPositions = [];
-    // Ev sahibi takım (mavi)
-    for(let i = 0; i < 11; i++) {
-        playerPositions.push({
-            x: 150 + (i % 4) * 120,
-            y: 100 + Math.floor(i / 4) * 100,
-            color: '#0066FF',
-            speed: Math.random() * 2 + 1
-        });
-    }
-    // Deplasman takımı (kırmızı)
-    for(let i = 0; i < 11; i++) {
-        playerPositions.push({
-            x: 500 + (i % 4) * 60,
-            y: 120 + Math.floor(i / 4) * 80,
-            color: '#FF0000',
-            speed: Math.random() * 2 + 1
-        });
-    }
-}
-
-function animatePlayers() {
-    const canvas = document.getElementById('footballCanvas');
-    const ctx = canvas.getContext('2d');
-    
-    // Sahayı yeniden çiz
-    drawField(canvas);
-    
-    // Oyuncuları hareket ettir
-    playerPositions.forEach(player => {
-        // Topa doğru hareket
-        const dx = ballPosition.x - player.x;
-        const dy = ballPosition.y - player.y;
-        const distance = Math.sqrt(dx*dx + dy*dy);
-        
-        if(distance > 20) {
-            player.x += (dx / distance) * player.speed * 0.5;
-            player.y += (dy / distance) * player.speed * 0.5;
-        }
-        
-        // Saha sınırları
-        player.x = Math.max(30, Math.min(770, player.x));
-        player.y = Math.max(30, Math.min(370, player.y));
-        
-        // Oyuncuyu çiz
-        ctx.fillStyle = player.color;
-        ctx.beginPath();
-        ctx.arc(player.x, player.y, 8, 0, 2*Math.PI);
-        ctx.fill();
-        
-        // Kenar çizgisi
-        ctx.strokeStyle = '#FFF';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-    });
-    
-    // Topu hareket ettir
-    ballPosition.x += (Math.random() - 0.5) * 4;
-    ballPosition.y += (Math.random() - 0.5) * 4;
-    
-    ballPosition.x = Math.max(20, Math.min(780, ballPosition.x));
-    ballPosition.y = Math.max(20, Math.min(380, ballPosition.y));
-    
-    // Topu çiz
-    ctx.fillStyle = '#FFF';
-    ctx.beginPath();
-    ctx.arc(ballPosition.x, ballPosition.y, 6, 0, 2*Math.PI);
-    ctx.fill();
-    
-    if(animationRunning) {
-        requestAnimationFrame(animatePlayers);
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('📄 DOM yüklendi');
-    
-    // Canvas'ı başlat
-    const canvas = document.getElementById('footballCanvas');
-    if(canvas) {
-        drawField(canvas);
-        initPlayers();
-        console.log('✅ Canvas hazırlandı');
-    }
-    
-    // Maç simülasyonu butonu
-    const simulateBtn = document.getElementById('simulateBtn');
-    if(simulateBtn) {
-        simulateBtn.addEventListener('click', () => {
-            console.log('🎮 Maç simülasyonu başladı');
-            
-            const team1 = document.getElementById('team1').value || 'Takım 1';
-            const team2 = document.getElementById('team2').value || 'Takım 2';
-            
-            const loading = document.getElementById('loading');
-            loading.style.display = 'block';
-            
-            setTimeout(() => {
-                const result = simulateMatch(team1, team2);
-                
-                // Sonucu göster
-                document.getElementById('finalScore').textContent = result.score;
-                
-                const eventsList = document.getElementById('eventsList');
-                eventsList.innerHTML = result.events.map(event => 
-                    `<div class="event-item">${event}</div>`
-                ).join('');
-                
-                document.getElementById('results').style.display = 'block';
-                document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
-                
-                loading.style.display = 'none';
-                console.log('✅ Maç tamamlandı');
-            }, 2000);
-        });
-    }
-    
-    // Canvas maçı başlat
-    const startCanvasBtn = document.getElementById('startCanvasBtn');
-    if(startCanvasBtn) {
-        startCanvasBtn.addEventListener('click', () => {
-            console.log('🎮 Canvas animasyonu başladı');
-            animationRunning = true;
-            initPlayers();
-            animatePlayers();
-            
-            // Canlı skor güncellemesi
-            let minute = 0;
-            let homeScore = 0;
-            let awayScore = 0;
-            
-            const scoreUpdate = setInterval(() => {
-                minute++;
-                document.getElementById('canvasTime').textContent = minute + "'";
-                
-                // Rastgele gol
-                if(Math.random() < 0.02) {
-                    if(Math.random() < 0.5) {
-                        homeScore++;
-                    } else {
-                        awayScore++;
-                    }
-                    document.getElementById('canvasScore').textContent = `${homeScore} - ${awayScore}`;
-                }
-                
-                if(minute >= 90) {
-                    clearInterval(scoreUpdate);
-                    animationRunning = false;
-                    console.log('🏁 Canvas maçı bitti');
-                }
-            }, 1000);
-        });
-    }
-    
-    // Pause butonu
-    const pauseCanvasBtn = document.getElementById('pauseCanvasBtn');
-    if(pauseCanvasBtn) {
-        pauseCanvasBtn.addEventListener('click', () => {
-            animationRunning = !animationRunning;
-            if(animationRunning) {
-                animatePlayers();
-                console.log('▶️ Animasyon devam ediyor');
-            } else {
-                console.log('⏸️ Animasyon durduruldu');
-            }
-        });
-    }
-    
-    // Rastgele takımlar
-    const randomBtn = document.getElementById('randomBtn');
-    if(randomBtn) {
-        randomBtn.addEventListener('click', () => {
-            const teams = ['Real Madrid', 'Barcelona', 'Manchester City', 'Liverpool', 'Bayern Munich', 'PSG', 'Chelsea', 'Arsenal'];
-            const shuffled = teams.sort(() => 0.5 - Math.random());
-            
-            document.getElementById('team1').value = shuffled[0];
-            document.getElementById('team2').value = shuffled[1];
-            
-            console.log(`🎲 Rastgele: ${shuffled[0]} vs ${shuffled[1]}`);
-        });
-    }
-    
-    console.log('✅ Tüm button\'lar hazır!');
-});
-</script>
-
-<script type="module" src="dist/web.js"></script>
+<script type="module" src="web.js"></script>
 </body>
 </html>

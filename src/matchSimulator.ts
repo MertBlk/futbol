@@ -1,5 +1,5 @@
-import { FootballApi } from './footballApi';
-import { Team, Player, MatchEvent, TeamStats, MatchResult } from './types';
+import { FootballApi } from './footballApi.js';
+import { Team, Player, MatchEvent, TeamStats, MatchResult } from './types.js';
 
 export class MatchSimulator {
   private api: FootballApi;
@@ -81,7 +81,7 @@ export class MatchSimulator {
     });
 
     // Kart simülasyonu (düşük olasılık)
-    if (Math.random() < 0.005) { // %0.5 şans
+    if (Math.random() < 0.05) { // %0.5 şans
       const allPlayers = [...team1Starting, ...team2Starting];
       const player = allPlayers[Math.floor(Math.random() * allPlayers.length)];
       const isTeam1 = team1Starting.includes(player);
@@ -134,7 +134,7 @@ export class MatchSimulator {
       }
 
       // Rastgele top hakimiyeti
-      const team1Possession = 40 + Math.random() * 20; // 40-60 arası
+      const team1Possession = 20 + Math.random() * 60; // 20-40 arası
       this.team1Stats.possession = Math.round(team1Possession);
       this.team2Stats.possession = 100 - this.team1Stats.possession;
 
@@ -160,9 +160,44 @@ export class MatchSimulator {
     }
   }
 
+  private createDemoTeam(teamName: string): Team {
+    const positions = ['GK', 'DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'FWD', 'FWD'];
+    const players: Player[] = positions.map((pos, i) => ({
+      id: i + 1,
+      name: `${teamName} Oyuncu ${i + 1}`,
+      position: pos as any,
+      rating: 75 + Math.floor(Math.random() * 20), // 75-95 arası
+      offense: 70 + Math.floor(Math.random() * 25),
+      defense: 70 + Math.floor(Math.random() * 25),
+      passing: 70 + Math.floor(Math.random() * 25),
+      fitness: 70 + Math.floor(Math.random() * 25),
+      speed: 70 + Math.floor(Math.random() * 25),
+      age: 20 + Math.floor(Math.random() * 15)
+    }));
+
+    return {
+      id: Math.floor(Math.random() * 1000),
+      name: teamName,
+      logo: '',
+      players: players
+    };
+  }
+
   async quickMatch(team1Name: string, team2Name: string, season: number = 2022): Promise<MatchResult> {
     try {
-      // Takım arama
+      // Demo modda direkt simülasyon yap - API çağırma
+      if (this.api.isDemoMode()) {
+        console.log('🎮 Demo modda maç simülasyonu başlıyor...');
+        
+        // Demo takımlar oluştur
+        this.team1 = this.createDemoTeam(team1Name);
+        this.team2 = this.createDemoTeam(team2Name);
+        
+        // Maçı simüle et
+        return await this.simulateDemoMatch();
+      }
+      
+      // Gerçek API modunda takım arama
       const [team1Results, team2Results] = await Promise.all([
         this.searchAndSelectTeam(team1Name),
         this.searchAndSelectTeam(team2Name)
@@ -184,5 +219,76 @@ export class MatchSimulator {
       console.error('❌ Hızlı maç hatası:', error);
       throw error;
     }
+  }
+
+  private async simulateDemoMatch(): Promise<MatchResult> {
+    console.log(`🎮 Demo maç: ${this.team1.name} vs ${this.team2.name}`);
+    
+    // Skorları sıfırla
+    this.events = [];
+    this.score = { team1: 0, team2: 0 };
+    this.team1Stats = { shots: 0, possession: 50, passes: 0, corners: 0, fouls: 0 };
+    this.team2Stats = { shots: 0, possession: 50, passes: 0, corners: 0, fouls: 0 };
+
+    // Maç simülasyonu
+    for (let minute = 1; minute <= 90; minute += Math.floor(Math.random() * 5) + 1) {
+      // Gol ihtimali
+      if (Math.random() < 0.03) { // %3 gol şansı her döngüde
+        const scoringTeam = Math.random() < 0.5 ? 1 : 2;
+        if (scoringTeam === 1) {
+          this.score.team1++;
+          this.events.push({
+            minute,
+            type: 'goal',
+            team: this.team1.name,
+            player: this.team1.players[Math.floor(Math.random() * 11)].name,
+            description: `⚽ ${this.team1.name} gol attı!`
+          });
+        } else {
+          this.score.team2++;
+          this.events.push({
+            minute,
+            type: 'goal',
+            team: this.team2.name,
+            player: this.team2.players[Math.floor(Math.random() * 11)].name,
+            description: `⚽ ${this.team2.name} gol attı!`
+          });
+        }
+      }
+
+      // Diğer olaylar
+      if (Math.random() < 0.05) {
+        const eventTeam = Math.random() < 0.5 ? this.team1.name : this.team2.name;
+        const eventTypes = ['Sarı kart', 'Köşe vuruşu', 'Faul', 'Ofsayt'];
+        const eventType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+        
+        this.events.push({
+          minute,
+          type: 'info',
+          team: eventTeam,
+          player: '',
+          description: `${eventType} - ${eventTeam}`
+        });
+      }
+    }
+
+    // İstatistikler
+    this.team1Stats.shots = Math.floor(Math.random() * 15) + 5;
+    this.team2Stats.shots = Math.floor(Math.random() * 15) + 5;
+    this.team1Stats.corners = Math.floor(Math.random() * 8) + 2;
+    this.team2Stats.corners = Math.floor(Math.random() * 8) + 2;
+    this.team1Stats.possession = Math.floor(Math.random() * 40) + 30;
+    this.team2Stats.possession = 100 - this.team1Stats.possession;
+
+    return {
+      score: `${this.team1.name} ${this.score.team1} - ${this.score.team2} ${this.team2.name}`,
+      events: this.events
+        .sort((a, b) => a.minute - b.minute)
+        .map(e => `${e.minute}' ${e.description}`),
+      teamStats: {
+        [this.team1.name]: this.team1Stats,
+        [this.team2.name]: this.team2Stats
+      }
+    };
   }
 }

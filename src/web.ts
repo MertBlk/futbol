@@ -1,42 +1,30 @@
-import { MatchSimulator } from './matchSimulator';
-import { MatchEngine } from './matchEngine';
-import { MatchEvent2D } from './canvasTypes';
+import { MatchSimulator } from './matchSimulator.js';
+import { MatchEngine } from './matchEngine.js';
+import { MatchEvent2D } from './canvasTypes.js';
+
+interface MatchResult {
+  homeTeam: string;
+  awayTeam: string;
+  homeScore: number;
+  awayScore: number;
+  events: string[];
+  stats: { [key: string]: any };
+}
 
 class WebInterface {
   private simulator: MatchSimulator | null = null;
   private matchEngine: MatchEngine | null = null;
-  private isApiMode: boolean = false;
+  private isMatchRunning: boolean = false;
   
   constructor() {
-    console.log('🔧 WebInterface constructor başladı');
+    console.log('🔧 WebInterface başlatılıyor...');
     this.initializeAPI();
     this.initializeEventListeners();
     this.initializeCanvas();
-    this.testDOMElements();
-  }
-
-  private testDOMElements(): void {
-    console.log('🔍 DOM elementleri kontrol ediliyor...');
-    
-    const elements = [
-      'simulateBtn',
-      'startCanvasBtn', 
-      'pauseCanvasBtn',
-      'randomBtn',
-      'team1',
-      'team2',
-      'footballCanvas'
-    ];
-
-    elements.forEach(id => {
-      const element = document.getElementById(id);
-      console.log(`${id}: ${element ? '✅ Bulundu' : '❌ Bulunamadı'}`);
-    });
   }
 
   private async initializeAPI(): Promise<void> {
     console.log('🔌 API başlatılıyor (demo mode)...');
-    this.isApiMode = false;
     this.simulator = new MatchSimulator('demo');
     console.log('✅ MatchSimulator oluşturuldu');
   }
@@ -53,80 +41,63 @@ class WebInterface {
     this.matchEngine = new MatchEngine('footballCanvas');
     console.log('✅ MatchEngine oluşturuldu');
     
-    // Canvas'ı görünür yap
-    const canvasContainer = document.getElementById('canvasContainer');
-    if (canvasContainer) {
-      canvasContainer.style.display = 'block';
-      console.log('✅ Canvas container görünür yapıldı');
-    }
-    
-    // Test çizimi
-    this.testCanvas();
+    // Canvas event handler'ları ayarla
+    this.setupCanvasEventHandlers();
   }
 
-  private testCanvas(): void {
-    const canvas = document.getElementById('footballCanvas') as HTMLCanvasElement;
-    if (!canvas) return;
+  private setupCanvasEventHandlers(): void {
+    if (!this.matchEngine) return;
     
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Test çizimi
-    ctx.fillStyle = '#ff0000';
-    ctx.fillRect(10, 10, 100, 50);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '16px Arial';
-    ctx.fillText('Canvas Çalışıyor!', 20, 35);
+    // Match engine'den gelen event'leri dinle
+    this.matchEngine.onMatchEvent((event: MatchEvent2D) => {
+      this.addEventToList(event);
+    });
     
-    console.log('✅ Canvas test çizimi tamamlandı');
+    this.matchEngine.onScoreUpdate((homeScore: number, awayScore: number) => {
+      this.updateScore(homeScore, awayScore);
+    });
+    
+    this.matchEngine.onTimeUpdate((minute: number) => {
+      this.updateTime(minute);
+    });
+    
+    this.matchEngine.onMatchEnd((result: any) => {
+      this.onMatchEnd(result);
+    });
+    
+    // İstatistikleri periyodik olarak güncelle
+    setInterval(() => {
+      if (this.isMatchRunning && this.matchEngine) {
+        this.updateLiveStats();
+      }
+    }, 2000); // Her 2 saniyede bir güncelle
   }
 
   private initializeEventListeners(): void {
     console.log('🎧 Event listener\'lar ekleniyor...');
     
-    // Simulate button
-    const simulateBtn = document.getElementById('simulateBtn');
-    if (simulateBtn) {
-      simulateBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        console.log('🎮 Simulate button tıklandı!');
-        this.simulateMatch();
+    // Main Start Match button
+    const startMatchBtn = document.getElementById('startMatchBtn');
+    if (startMatchBtn) {
+      startMatchBtn.addEventListener('click', () => {
+        this.startUnifiedMatch();
       });
-      console.log('✅ Simulate button listener eklendi');
-    } else {
-      console.error('❌ simulateBtn bulunamadı!');
-    }
-
-    // Canvas start button  
-    const startCanvasBtn = document.getElementById('startCanvasBtn');
-    if (startCanvasBtn) {
-      startCanvasBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        console.log('🎮 Canvas start button tıklandı!');
-        this.startCanvasMatch();
-      });
-      console.log('✅ Canvas start button listener eklendi');
-    } else {
-      console.error('❌ startCanvasBtn bulunamadı!');
+      console.log('✅ Start Match button listener eklendi');
     }
 
     // Pause button
-    const pauseCanvasBtn = document.getElementById('pauseCanvasBtn');
-    if (pauseCanvasBtn) {
-      pauseCanvasBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        console.log('⏸️ Canvas pause button tıklandı!');
-        this.pauseCanvasMatch();
+    const pauseBtn = document.getElementById('pauseBtn');
+    if (pauseBtn) {
+      pauseBtn.addEventListener('click', () => {
+        this.pauseMatch();
       });
-      console.log('✅ Canvas pause button listener eklendi');
+      console.log('✅ Pause button listener eklendi');
     }
 
-    // Random button
+    // Random teams button
     const randomBtn = document.getElementById('randomBtn');
     if (randomBtn) {
-      randomBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        console.log('🎲 Random button tıklandı!');
+      randomBtn.addEventListener('click', () => {
         this.setRandomTeams();
       });
       console.log('✅ Random button listener eklendi');
@@ -143,7 +114,7 @@ class WebInterface {
       console.log('✅ Speed select listener eklendi');
     }
 
-    // Enter key listeners
+    // Enter key listeners for team inputs
     const team1Input = document.getElementById('team1') as HTMLInputElement;
     const team2Input = document.getElementById('team2') as HTMLInputElement;
     
@@ -152,7 +123,7 @@ class WebInterface {
         input.addEventListener('keypress', (e) => {
           if (e.key === 'Enter') {
             console.log(`⌨️ Enter tuşu basıldı (team${index + 1})`);
-            this.simulateMatch();
+            this.startUnifiedMatch();
           }
         });
         console.log(`✅ Team${index + 1} enter listener eklendi`);
@@ -162,8 +133,8 @@ class WebInterface {
     console.log('🎧 Tüm event listener\'lar eklendi');
   }
 
-  private async simulateMatch(): Promise<void> {
-    console.log('🚀 simulateMatch() çağrıldı');
+  private async startUnifiedMatch(): Promise<void> {
+    console.log('🚀 Unified match başlatılıyor...');
     
     const team1Input = document.getElementById('team1') as HTMLInputElement;
     const team2Input = document.getElementById('team2') as HTMLInputElement;
@@ -188,95 +159,181 @@ class WebInterface {
       return;
     }
 
-    // Canvas'ı göster ve maçı başlat
-    this.showCanvas();
+    // Match state'i güncelle
+    this.isMatchRunning = true;
+    this.updateButtonStates();
     
-    this.showLoading(true);
-    this.hideError();
+    // UI'ı temizle
     this.clearResults();
+    this.updateScore(0, 0);
+    this.updateTime(0);
 
     try {
-      console.log('🔄 Maç simülasyonu başlatılıyor...');
+      // Canvas match'i başlat
+      console.log('🎮 Canvas maçı başlatılıyor...');
+      this.matchEngine?.setupMatch(team1, team2);
+      this.matchEngine?.startMatch();
       
-      if (this.simulator) {
-        const result = await this.simulator.quickMatch(team1, team2, 2022);
-        console.log('✅ Maç simülasyonu tamamlandı:', result);
-        this.displayResults(result);
-      } else {
-        throw new Error('Simulator başlatılamadı');
-      }
+      // SINIR: Simulator'ı arka planda ÇALIŞTIRMA - sadece canvas kullan
+      // Canvas'tan gelen event'ler zaten senkronize olacak
+      console.log('✅ Canvas maçı başlatıldı - simulator devre dışı bırakıldı');
+      
     } catch (error) {
-      console.error('❌ Maç simülasyonu hatası:', error);
+      console.error('❌ Maç başlatma hatası:', error);
       this.showError(`Hata: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`);
-    } finally {
-      this.showLoading(false);
+      this.isMatchRunning = false;
+      this.updateButtonStates();
     }
   }
 
-  private startCanvasMatch(): void {
-    console.log('🎮 startCanvasMatch() çağrıldı');
-    
-    const team1Input = document.getElementById('team1') as HTMLInputElement;
-    const team2Input = document.getElementById('team2') as HTMLInputElement;
-    
-    if (!team1Input || !team2Input) {
-      console.error('❌ Team input elementleri bulunamadı!');
-      return;
-    }
-
-    const team1 = team1Input.value.trim();
-    const team2 = team2Input.value.trim();
-
-    if (!team1 || !team2) {
-      this.showError('Önce takım isimlerini girin!');
-      return;
-    }
-
-    console.log(`🎮 Canvas maçı başlatılıyor: ${team1} vs ${team2}`);
-    
-    this.matchEngine?.setupMatch(team1, team2);
-    this.matchEngine?.startMatch();
-    this.clearResults();
-  }
-
-  private pauseCanvasMatch(): void {
-    console.log('⏸️ pauseCanvasMatch() çağrıldı');
+  private pauseMatch(): void {
+    console.log('⏸️ Maç duraklatılıyor...');
     this.matchEngine?.pauseMatch();
+    this.isMatchRunning = !this.isMatchRunning;
+    this.updateButtonStates();
   }
 
-  private showCanvas(): void {
-    const canvasContainer = document.getElementById('canvasContainer');
-    if (canvasContainer) {
-      canvasContainer.style.display = 'block';
-      canvasContainer.scrollIntoView({ behavior: 'smooth' });
-      console.log('✅ Canvas gösterildi');
+  private updateButtonStates(): void {
+    const startBtn = document.getElementById('startMatchBtn') as HTMLButtonElement;
+    const pauseBtn = document.getElementById('pauseBtn') as HTMLButtonElement;
+    
+    if (startBtn) {
+      startBtn.disabled = this.isMatchRunning;
+      startBtn.textContent = this.isMatchRunning ? '🎮 Maç Devam Ediyor...' : '🎮 Maçı Başlat';
+    }
+    
+    if (pauseBtn) {
+      pauseBtn.disabled = !this.isMatchRunning;
+    }
+  }
+
+  private updateScore(homeScore: number, awayScore: number): void {
+    const scoreElement = document.getElementById('canvasScore');
+    if (scoreElement) {
+      scoreElement.textContent = `${homeScore} - ${awayScore}`;
+    }
+    
+    // Ana başlıktaki skoru da güncelle  
+    // (scoreElement zaten kontrol edilmiş yukarıda)
+  }
+
+  private updateTime(minute: number): void {
+    const timeElement = document.getElementById('canvasTime');
+    if (timeElement) {
+      timeElement.textContent = `${minute}'`;
+    }
+    
+    // Match status'u da güncelle
+    const matchStatus = document.getElementById('matchStatus');
+    if (matchStatus) {
+      if (minute === 0) {
+        matchStatus.textContent = 'Maç Başlıyor...';
+      } else if (minute === 45) {
+        matchStatus.textContent = 'Devre Arası';
+      } else if (minute === 46) {
+        matchStatus.textContent = 'İkinci Yarı';
+      } else if (minute >= 90) {
+        matchStatus.textContent = 'Maç Bitti';
+      } else {
+        matchStatus.textContent = 'Oynanıyor';
+      }
     }
   }
 
   private addEventToList(event: MatchEvent2D): void {
-    const eventsList = document.getElementById('eventsList');
-    if (eventsList) {
-      const eventDiv = document.createElement('div');
-      eventDiv.className = 'event-item';
-      eventDiv.textContent = `${event.minute}' - ${event.description}`;
-      eventsList.appendChild(eventDiv);
+    const eventsContainer = document.getElementById('eventsList');
+    if (eventsContainer) {
+        const eventDiv = document.createElement('div');
+        eventDiv.className = `event-item ${event.type}`;
+        eventDiv.textContent = `${event.minute}' - ${event.description}`;
+        
+        // En üste ekle (yeni event'ler üstte görünsün)
+        eventsContainer.insertBefore(eventDiv, eventsContainer.firstChild);
+        
+        // Maksimum 15 event göster
+        const events = eventsContainer.children;
+        if (events.length > 15) {
+            eventsContainer.removeChild(events[events.length - 1]);
+        }
     }
+  }
+
+  private onMatchEnd(result: any): void {
+    console.log('� Maç bitti:', result);
+    this.isMatchRunning = false;
+    this.updateButtonStates();
+    
+    // Stats'i göster
+    this.displayStats(result);
+  }
+
+  private displayStats(matchResult: any): void {
+    if (matchResult.stats) {
+      this.updateStatsDisplay(matchResult.stats);
+    }
+  }
+  
+  private updateLiveStats(): void {
+    if (!this.matchEngine) return;
+    
+    const stats = this.matchEngine.getCurrentStats();
+    this.updateStatsDisplay(stats);
+  }
+  
+  private updateStatsDisplay(stats: any): void {
+    const homeShots = document.getElementById('homeShots');
+    const awayShots = document.getElementById('awayShots');
+    const homePossession = document.getElementById('homePossession');
+    const awayPossession = document.getElementById('awayPossession');
+    const homeCards = document.getElementById('homeCards');
+    const awayCards = document.getElementById('awayCards');
+    const homeCorners = document.getElementById('homeCorners');
+    const awayCorners = document.getElementById('awayCorners');
+    
+    if (homeShots) homeShots.textContent = stats.homeShots || '0';
+    if (awayShots) awayShots.textContent = stats.awayShots || '0';
+    if (homePossession) homePossession.textContent = stats.homePossession || '50';
+    if (awayPossession) awayPossession.textContent = stats.awayPossession || '50';
+    if (homeCards) homeCards.textContent = stats.homeCards || '0';
+    if (awayCards) awayCards.textContent = stats.awayCards || '0';
+    if (homeCorners) homeCorners.textContent = stats.homeCorners || '0';
+    if (awayCorners) awayCorners.textContent = stats.awayCorners || '0';
   }
 
   private clearResults(): void {
     const eventsList = document.getElementById('eventsList');
+    const statsList = document.getElementById('statsList');
+    
     if (eventsList) {
       eventsList.innerHTML = '';
+    }
+    
+    if (statsList) {
+      statsList.innerHTML = '';
+    }
+    
+    // Results section'ı gizle
+    const results = document.getElementById('results');
+    if (results) {
+      results.style.display = 'none';
+    }
+  }
+
+  private showResults(): void {
+    const results = document.getElementById('results');
+    if (results) {
+      results.style.display = 'block';
     }
   }
 
   private setRandomTeams(): void {
-    console.log('🎲 setRandomTeams() çağrıldı');
+    console.log('🎲 Rastgele takımlar seçiliyor...');
     
     const teams = [
       'Real Madrid', 'Barcelona', 'Manchester City', 'Liverpool', 
       'Bayern Munich', 'Paris Saint-Germain', 'Chelsea', 'Arsenal',
-      'Manchester United', 'Tottenham', 'AC Milan', 'Inter Milan'
+      'Manchester United', 'Tottenham', 'AC Milan', 'Inter Milan',
+      'Atletico Madrid', 'Borussia Dortmund', 'AS Roma', 'Napoli'
     ];
 
     const shuffled = teams.sort(() => 0.5 - Math.random());
@@ -287,64 +344,16 @@ class WebInterface {
     if (team1Input && team2Input) {
       team1Input.value = shuffled[0];
       team2Input.value = shuffled[1];
-      console.log(`🎲 Rastgele takımlar seçildi: ${shuffled[0]} vs ${shuffled[1]}`);
-    }
-  }
-
-  private displayResults(result: any): void {
-    console.log('📊 displayResults() çağrıldı:', result);
-    
-    const finalScore = document.getElementById('finalScore');
-    if (finalScore) {
-      finalScore.textContent = result.score;
-    }
-
-    const eventsList = document.getElementById('eventsList');
-    if (eventsList && result.events) {
-      eventsList.innerHTML = result.events.map((event: string) => 
-        `<div class="event-item">${event}</div>`
-      ).join('');
-    }
-
-    this.showResults();
-  }
-
-  private showLoading(show: boolean): void {
-    const loading = document.getElementById('loading');
-    const btn = document.getElementById('simulateBtn') as HTMLButtonElement;
-    
-    if (loading) {
-      loading.style.display = show ? 'block' : 'none';
-    }
-    
-    if (btn) {
-      btn.disabled = show;
-      btn.textContent = show ? '⏳ Simüle Ediliyor...' : '🎮 Maçı Simüle Et';
-    }
-  }
-
-  private showResults(): void {
-    const results = document.getElementById('results');
-    if (results) {
-      results.style.display = 'block';
-      results.scrollIntoView({ behavior: 'smooth' });
+      console.log(`🎲 Rastgele takımlar: ${shuffled[0]} vs ${shuffled[1]}`);
     }
   }
 
   private showError(message: string): void {
-    const errorDiv = document.getElementById('errorMsg');
-    if (errorDiv) {
-      errorDiv.textContent = message;
-      errorDiv.style.display = 'block';
-    }
-    console.error('🚨 Hata gösterildi:', message);
-  }
-
-  private hideError(): void {
-    const errorDiv = document.getElementById('errorMsg');
-    if (errorDiv) {
-      errorDiv.style.display = 'none';
-    }
+    // Console'da hata mesajını göster
+    console.error('🚨 Hata:', message);
+    
+    // Geçici olarak alert ile göster, sonra daha güzel bir error UI ekleyebiliriz
+    alert(message);
   }
 }
 

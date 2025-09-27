@@ -8,6 +8,10 @@ export class FootballApi {
     this.apiKey = apiKey;
   }
 
+  public isDemoMode(): boolean {
+    return this.apiKey === 'demo';
+  }
+
   private async makeRequest(endpoint: string): Promise<any> {
     const url = `${this.baseUrl}${endpoint}`;
     
@@ -71,17 +75,50 @@ export class FootballApi {
     }
 
     return {
+      id: apiPlayer.player.id || Math.random() * 10000,
       name: apiPlayer.player.name,
       position,
       rating: Math.min(Math.max(rating, 40), 99), // 40-99 arası sınırla
       offense: Math.min(Math.max(offense, 20), 99),
       defense: Math.min(Math.max(defense, 20), 99),
       passing: Math.min(Math.max(passing, 20), 99),
-      fitness: 85 + Math.random() * 15 // 85-100 arası rastgele
+      fitness: 85 + Math.random() * 15, // 85-100 arası rastgele
+      speed: rating * 0.7 + Math.random() * 20 // Hıza göre hesapla
     };
   }
 
   async getTeamSquad(teamId: number, season: number): Promise<Team> {
+    if (this.isDemoMode()) {
+      // Demo mode için sahte takım verisi oluştur
+      const demoPlayers: Player[] = [];
+      const positions = ['GK', 'DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'FWD', 'FWD', 'FWD'];
+      
+      for (let i = 0; i < 11; i++) {
+        demoPlayers.push({
+          id: i + 1,
+          name: `Oyuncu ${i + 1}`,
+          position: positions[i] as any,
+          rating: 70 + Math.random() * 25,
+          offense: 60 + Math.random() * 30,
+          defense: 60 + Math.random() * 30,
+          passing: 60 + Math.random() * 30,
+          fitness: 85 + Math.random() * 15,
+          speed: 60 + Math.random() * 30
+        });
+      }
+
+      const teamNames = ['Real Madrid', 'Barcelona', 'Manchester City', 'Liverpool', 'Bayern Munich', 'Paris Saint-Germain'];
+      const teamName = teamNames.find(name => name.toLowerCase().includes(String(teamId))) || teamNames[teamId % teamNames.length];
+
+      return {
+        id: teamId,
+        name: teamName,
+        players: demoPlayers,
+        year: season,
+        logo: ''
+      };
+    }
+
     try {
       const data = await this.makeRequest(`/players/squads?team=${teamId}`);
       
@@ -99,9 +136,11 @@ export class FootballApi {
       );
 
       return {
+        id: teamData.team.id || Math.random() * 1000,
         name: teamData.team.name,
         players: players.slice(0, 25), // İlk 25 oyuncu
-        year: season
+        year: season,
+        logo: teamData.team.logo || ''
       };
     } catch (error) {
       console.error('❌ API Error:', error);
@@ -110,6 +149,22 @@ export class FootballApi {
   }
 
   async searchTeams(teamName: string): Promise<Array<{ id: number; name: string; logo: string }>> {
+    if (this.isDemoMode()) {
+      // Demo mode için sahte takım verisi döndür
+      const demoTeams = [
+        { id: 1, name: 'Real Madrid', logo: '' },
+        { id: 2, name: 'Barcelona', logo: '' },
+        { id: 3, name: 'Manchester City', logo: '' },
+        { id: 4, name: 'Liverpool', logo: '' },
+        { id: 5, name: 'Bayern Munich', logo: '' },
+        { id: 6, name: 'Paris Saint-Germain', logo: '' }
+      ];
+      
+      return demoTeams.filter(team => 
+        team.name.toLowerCase().includes(teamName.toLowerCase())
+      );
+    }
+
     try {
       const data = await this.makeRequest(`/teams?search=${encodeURIComponent(teamName)}`);
       

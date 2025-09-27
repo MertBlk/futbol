@@ -1,4 +1,5 @@
 export interface Player {
+  id: number;
   name: string;
   position: 'GK' | 'DEF' | 'MID' | 'FWD';
   rating: number;
@@ -6,17 +7,20 @@ export interface Player {
   defense: number;
   passing: number;
   fitness: number;
+  speed: number;
 }
 
 export interface Team {
+  id: number;
   name: string;
+  logo: string;
   players: Player[];
   year?: number;
 }
 
 export interface MatchEvent {
   minute: number;
-  type: 'goal' | 'assist' | 'yellow_card' | 'red_card' | 'injury' | 'substitution';
+  type: 'goal' | 'assist' | 'yellow_card' | 'red_card' | 'injury' | 'substitution' | 'info';
   team: string;
   player: string;
   description: string;
