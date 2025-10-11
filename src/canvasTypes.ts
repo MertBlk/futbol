@@ -42,7 +42,7 @@ export interface Goal {
 
 export interface MatchEvent2D {
   minute: number;
-  type: 'goal' | 'card' | 'substitution' | 'info';
+  type: 'goal' | 'card' | 'substitution' | 'info' | 'foul' | 'offside';
   team: 'home' | 'away';
   player?: string;
   description: string;

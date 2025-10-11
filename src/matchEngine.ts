@@ -35,7 +35,9 @@ export class MatchEngine {
     homeCards: 0,
     awayCards: 0,
     homeCorners: 0,
-    awayCorners: 0
+    awayCorners: 0,
+    homePasses: 0,
+    awayPasses: 0
   };
 
   // Canvas boyutlarını büyüt
@@ -524,25 +526,29 @@ export class MatchEngine {
         player.targetY = this.ball.y + (Math.random() - 0.5) * 50;
         moveSpeed = player.speed * 1.8; // Daha hızlı hareket
         
-        // Topa çok yakınsa top'u it
-        if (ballDist < 20 && Math.random() < 0.15) {
-          const pushX = (this.ball.x - player.x) / ballDist * 4;
-          const pushY = (this.ball.y - player.y) / ballDist * 4;
-          this.ball.vx += pushX;
-          this.ball.vy += pushY;
-          
-          // Top itme event'i oluştur
-          const kickStrength = Math.sqrt(pushX * pushX + pushY * pushY);
-          if (kickStrength > 3) {
-            this.emitEvent({
-              type: 'info',
-              minute: Math.floor(this.gameState.minute),
-              description: `⚽ ${player.name} topu sürdü`,
-              team: player.team
-            });
+        // Topa çok yakınsa top'u it veya pas yap
+        if (ballDist < 20) {
+          if (Math.random() < 0.4) { // %40 ihtimalle pas yap
+            this.attemptPass(player);
+          } else if (Math.random() < 0.2) { // %20 ihtimalle şut at
+            this.attemptShot(player);
+          } else if (Math.random() < 0.1) { // %10 ihtimalle top itme
+            const pushX = (this.ball.x - player.x) / ballDist * 4;
+            const pushY = (this.ball.y - player.y) / ballDist * 4;
+            this.ball.vx += pushX;
+            this.ball.vy += pushY;
+            
+            // Top itme event'i oluştur
+            const kickStrength = Math.sqrt(pushX * pushX + pushY * pushY);
+            if (kickStrength > 3) {
+              this.emitEvent({
+                type: 'info',
+                minute: Math.floor(this.gameState.minute),
+                description: `⚽ ${player.name} topu sürdü`,
+                team: player.team
+              });
+            }
           }
-          
-          console.log(`🦵 Oyuncu topu itti! Hız: ${pushX.toFixed(1)}, ${pushY.toFixed(1)}`);
         }
       }
       
@@ -575,77 +581,275 @@ export class MatchEngine {
     this.ball.x += this.ball.vx;
     this.ball.y += this.ball.vy;
     
-    // Saha sınırları (kenar çizgisi)
-    if (this.ball.x < 10 || this.ball.x > this.fieldWidth - 10) {
-      this.ball.vx = -this.ball.vx * 0.5;
-      
-      // Kenar çizgisi event'i
-      if (Math.random() < 0.3) {
-        const team = this.ball.x < this.fieldWidth / 2 ? 'away' : 'home';
-        this.emitEvent({
-          type: 'info',
-          minute: Math.floor(this.gameState.minute),
-          description: '🚩 Top kenar çizgisinden çıktı',
-          team: team
-        });
-      }
-    }
-    
-    if (this.ball.y < 10 || this.ball.y > this.fieldHeight - 10) {
-      this.ball.vy = -this.ball.vy * 0.5;
-      
-      // Köşe vuruşu event'i
-      if (Math.random() < 0.4) {
-        const team = Math.random() < 0.5 ? 'home' : 'away';
-        this.emitEvent({
-          type: 'info',
-          minute: Math.floor(this.gameState.minute),
-          description: '🚩 Köşe vuruşu',
-          team: team
-        });
-      }
+    // Saha sınırları ve aut kontrolleri
+    if (this.ball.x < 10) {
+      this.handleOutOfBounds('left');
+    } else if (this.ball.x > this.fieldWidth - 10) {
+      this.handleOutOfBounds('right');
+    } else if (this.ball.y < 10) {
+      this.handleOutOfBounds('top');
+    } else if (this.ball.y > this.fieldHeight - 10) {
+      this.handleOutOfBounds('bottom');
     }
     
     // Sınırları zorla
-    this.ball.x = Math.max(10, Math.min(this.fieldWidth - 10, this.ball.x));
-    this.ball.y = Math.max(10, Math.min(this.fieldHeight - 10, this.ball.y));
+    this.keepBallInBounds();
   }
-
-  private checkGoals(): void {
-    this.goals.forEach(goal => {
-      if (this.ball.x >= goal.x && this.ball.x <= goal.x + goal.width &&
-          this.ball.y >= goal.y && this.ball.y <= goal.y + goal.height) {
+  
+  private handleOutOfBounds(side: 'left' | 'right' | 'top' | 'bottom'): void {
+    // Son temas eden oyuncuyu bul
+    let lastTouchTeam: 'home' | 'away' = 'home';
+    const ballPosition = { x: this.ball.x, y: this.ball.y };
+    
+    // En yakın oyuncuya göre son dokunmayı belirle
+    let closestDistance = Infinity;
+    this.players.forEach(player => {
+      const distance = this.getDistance(player, ballPosition);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        lastTouchTeam = player.team;
+      }
+    });
+    
+    if (side === 'left' || side === 'right') {
+      // Yan çizgiler - köşe vurusu veya kale vurusu
+      const isGoalArea = this.ball.y > this.fieldHeight * 0.3 && this.ball.y < this.fieldHeight * 0.7;
+      
+      if (isGoalArea) {
+        // Köşe vurusu
+        const corner = side === 'left' ? 'home' : 'away';
+        const kickingTeam = lastTouchTeam === corner ? (corner === 'home' ? 'away' : 'home') : lastTouchTeam;
         
-        // Gol!
-        if (goal.team === 'home') {
-          this.gameState.score.away++;
-          this.emitEvent({
-            type: 'goal',
-            minute: Math.floor(this.gameState.minute),
-            description: `${this.awayTeamName} gol attı!`,
-            team: 'away'
-          });
+        this.emitEvent({
+          type: 'info',
+          minute: Math.floor(this.gameState.minute),
+          description: `🚩 ${kickingTeam === 'home' ? this.homeTeamName : this.awayTeamName} köşe vurusu!`,
+          team: kickingTeam
+        });
+        
+        // Köşe pozisyonu
+        this.ball.x = side === 'left' ? 20 : this.fieldWidth - 20;
+        this.ball.y = this.ball.y < this.fieldHeight / 2 ? 20 : this.fieldHeight - 20;
+        this.ball.vx = 0;
+        this.ball.vy = 0;
+        
+        if (kickingTeam === 'home') {
+          this.matchStats.homeCorners++;
         } else {
-          this.gameState.score.home++;
-          this.emitEvent({
-            type: 'goal',
-            minute: Math.floor(this.gameState.minute),
-            description: `${this.homeTeamName} gol attı!`,
-            team: 'home'
-          });
+          this.matchStats.awayCorners++;
         }
-        
-        // Score update'i emit et
-        this.emitScoreUpdate();
-        
-        // Topu ortaya koy
-        this.ball.x = this.fieldWidth / 2;
+      } else {
+        // Kale vurusu
+        this.ball.x = side === 'left' ? 50 : this.fieldWidth - 50;
         this.ball.y = this.fieldHeight / 2;
         this.ball.vx = 0;
         this.ball.vy = 0;
       }
+    } else {
+      // Üst/alt çizgiler - aut
+      this.ball.y = side === 'top' ? 20 : this.fieldHeight - 20;
+      this.ball.vx = 0;
+      this.ball.vy = 0;
+    }
+  }
+  
+  // Sınırları zorla
+  private keepBallInBounds(): void {
+    this.ball.x = Math.max(10, Math.min(this.fieldWidth - 10, this.ball.x));
+    this.ball.y = Math.max(10, Math.min(this.fieldHeight - 10, this.ball.y));
+  }
+
+  private getDistance(obj1: { x: number; y: number }, obj2: { x: number; y: number }): number {
+    const dx = obj1.x - obj2.x;
+    const dy = obj1.y - obj2.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  private resetBallToCenter(): void {
+    // Topu saha ortasına koy
+    this.ball.x = this.fieldWidth / 2;
+    this.ball.y = this.fieldHeight / 2;
+    this.ball.vx = 0; // Hareketsiz başla
+    this.ball.vy = 0;
+    
+    // Oyuncuları başlangıç pozisyonlarına döndür ve hareketsiz yap
+    this.players.forEach(player => {
+      player.x = player.baseX;
+      player.y = player.baseY;
+      player.vx = 0;
+      player.vy = 0;
+      player.hasBall = false;
+      // Hedef pozisyonları da sıfırla
+      player.targetX = player.baseX;
+      player.targetY = player.baseY;
+    });
+    
+    // Kısa bir süre bekle, sonra topu hareket ettir
+    setTimeout(() => {
+      if (this.gameState.isPlaying) {
+        this.ball.vx = (Math.random() - 0.5) * 3;
+        this.ball.vy = (Math.random() - 0.5) * 3;
+      }
+    }, 1000); // 1 saniye sonra top harekete geçer
+  }
+
+  private attemptPass(passer: Player2D): void {
+    // Aynı takımdan en uygun oyuncuyu bul
+    const teammates = this.players.filter(p => 
+      p.team === passer.team && 
+      p !== passer
+    );
+    
+    if (teammates.length === 0) return;
+    
+    // En uygun takım arkadaşını seç (uzaklık ve açıya göre)
+    let bestTeammate: Player2D | null = null;
+    let bestScore = -1;
+    
+    for (const teammate of teammates) {
+      const distance = this.getDistance(passer, teammate);
+      const ballDistance = this.getDistance(this.ball, teammate);
+      
+      // İdeal pas mesafesi 50-200 piksel arası
+      if (distance > 50 && distance < 200) {
+        // Pas skoru hesapla (yakınlığa göre)
+        const score = (200 - distance) / 200 + (100 - ballDistance) / 100;
+        
+        if (score > bestScore) {
+          bestScore = score;
+          bestTeammate = teammate;
+        }
+      }
+    }
+    
+    if (bestTeammate !== null) {
+      // Pas yap
+      const passDistance = this.getDistance(passer, bestTeammate);
+      const passForce = Math.min(passDistance / 30, 8); // Pas kuvveti
+      
+      const dx = bestTeammate.x - this.ball.x;
+      const dy = bestTeammate.y - this.ball.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      if (distance > 0) {
+        this.ball.vx = (dx / distance) * passForce;
+        this.ball.vy = (dy / distance) * passForce;
+        
+        // Pas istatistiği artır
+        if (passer.team === 'home') {
+          this.matchStats.homePasses++;
+        } else {
+          this.matchStats.awayPasses++;
+        }
+        
+        // Pas event'i oluştur
+        if (Math.random() < 0.3) { // %30 ihtimalle event göster
+          this.emitEvent({
+            type: 'info',
+            minute: Math.floor(this.gameState.minute),
+            description: `⚽ ${passer.name} pas yaptı`,
+            team: passer.team
+          });
+        }
+      }
+    }
+  }
+
+  private attemptShot(shooter: Player2D): void {
+    // Rakip kaleye doğru şut at
+    const targetGoal = this.goals.find(goal => goal.team !== shooter.team);
+    if (!targetGoal) return;
+    
+    // Kale merkezine doğru şut hesapla
+    const goalCenterX = targetGoal.x + targetGoal.width / 2;
+    const goalCenterY = targetGoal.y + targetGoal.height / 2;
+    
+    // Şut açısına rastgelelik ekle (tam merkeze değil)
+    const randomX = goalCenterX + (Math.random() - 0.5) * targetGoal.width * 0.8;
+    const randomY = goalCenterY + (Math.random() - 0.5) * targetGoal.height * 0.6;
+    
+    const dx = randomX - this.ball.x;
+    const dy = randomY - this.ball.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (distance > 0) {
+      // Şut gücü mesafeye göre (6-12 arası)
+      const shotPower = Math.min(12, Math.max(6, distance / 50));
+      
+      this.ball.vx = (dx / distance) * shotPower;
+      this.ball.vy = (dy / distance) * shotPower;
+      
+      // Şut istatistiği artır
+      if (shooter.team === 'home') {
+        this.matchStats.homeShots++;
+      } else {
+        this.matchStats.awayShots++;
+      }
+      
+      // Şut event'i oluştur
+      if (Math.random() < 0.6) { // %60 ihtimalle event göster
+        this.emitEvent({
+          type: 'info',
+          minute: Math.floor(this.gameState.minute),
+          description: `⚽ ${shooter.name} şut çekti!`,
+          team: shooter.team
+        });
+      }
+    }
+  }
+
+  private checkGoals(): void {
+    this.goals.forEach(goal => {
+      // Topun Y ekseni kale alanında olması gerekiyor (dikey olarak kale içinde)
+      const ballInGoalHeight = this.ball.y + 8 >= goal.y && this.ball.y - 8 <= goal.y + goal.height;
+      
+      if (!ballInGoalHeight) return;
+      
+      // Topun minimum hızla hareket etmesi gerekiyor
+      const ballSpeed = Math.sqrt(this.ball.vx * this.ball.vx + this.ball.vy * this.ball.vy);
+      if (ballSpeed < 3.0) return; // Daha yüksek minimum hız
+      
+      let goalScored = false;
+      
+      if (goal.team === 'home') {
+        // Sol taraftaki kale (ev sahibi kalesi)
+        // Top, kale çizgisini tamamen geçmeli ve yeterli hızla kaleye doğru gitmeli
+        if (this.ball.x + 8 <= goal.x && this.ball.vx < -2.0) {
+          // Top kaleye doğru yeterli hızla hareket ediyor ve kale çizgisini geçti
+          goalScored = true;
+          this.gameState.score.away++; // Deplasman takımı gol attı
+          this.emitEvent({
+            type: 'goal',
+            minute: Math.floor(this.gameState.minute),
+            description: `⚽ ${this.awayTeamName} GOL! ⚽`,
+            team: 'away'
+          });
+        }
+      } else {
+        // Sağ taraftaki kale (deplasman kalesi)  
+        // Top, kale çizgisini tamamen geçmeli ve yeterli hızla kaleye doğru gitmeli
+        if (this.ball.x - 8 >= goal.x + goal.width && this.ball.vx > 2.0) {
+          // Top kaleye doğru hareket ediyor ve kale çizgisini geçti
+          goalScored = true;
+          this.gameState.score.home++; // Ev sahibi takım gol attı
+          this.emitEvent({
+            type: 'goal',
+            minute: Math.floor(this.gameState.minute),
+            description: `⚽ ${this.homeTeamName} GOL! ⚽`,
+            team: 'home'
+          });
+        }
+      }
+      
+      if (goalScored) {
+        console.log(`🥅 GOL! Top pozisyonu: (${this.ball.x.toFixed(1)}, ${this.ball.y.toFixed(1)}), Hız: (${this.ball.vx.toFixed(1)}, ${this.ball.vy.toFixed(1)})`);
+        this.emitScoreUpdate();
+        this.resetBallToCenter();
+      }
     });
   }
+  
+
 
   private generateRandomEvents(): void {
     // Her saniyede düşük ihtimalle rastgele olaylar
