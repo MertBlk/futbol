@@ -4,7 +4,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "build:web": "tsc && cp index.html dist/",
+    "build:web": "tsc && cp index.html styles.css dist/",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
     "serve": "npm run build:web && npx serve dist -l 3000",

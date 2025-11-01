@@ -4,13 +4,10 @@ import { MatchSimulator } from './matchSimulator';
 dotenv.config();
 
 async function main() {
-  const apiKey = process.env.FOOTBALL_API_KEY;
+  // API çağrıları devre dışı - demo mode kullan
+  const apiKey = 'demo'; // process.env.FOOTBALL_API_KEY || 'demo';
   
-  if (!apiKey) {
-    console.error('❌ FOOTBALL_API_KEY bulunamadı!');
-    console.log('Çözüm: .env dosyasında FOOTBALL_API_KEY=your_key ekleyin');
-    return;
-  }
+  console.log('⚠️  API çağrıları devre dışı - DEMO MODE aktif');
 
   const matchSim = new MatchSimulator(apiKey);
 

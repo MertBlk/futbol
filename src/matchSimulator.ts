@@ -115,12 +115,19 @@ export class MatchSimulator {
     season: number = 2024
   ): Promise<MatchResult> {
     try {
-      console.log('📥 Takım kadroları yükleniyor...');
+      // API çağrıları devre dışı - demo mode kontrol
+      if (!this.api.isDemoMode()) {
+        console.warn('⚠️  Gerçek API çağrısı engellendi - sadece demo mode kullanılabilir');
+        throw new Error('API çağrıları devre dışı - lütfen demo mode kullanın');
+      }
       
-      const [team1, team2] = await Promise.all([
-        this.api.getTeamSquad(team1Id, season),
-        this.api.getTeamSquad(team2Id, season)
-      ]);
+      console.log('📥 Takım kadroları yükleniyor (demo mode)...');
+      
+      // Demo mode'da API çağrısı yapma - ID'leri takım ismi olarak kullan
+      const [team1, team2] = [
+        this.createDemoTeam(`Takım ${team1Id}`),
+        this.createDemoTeam(`Takım ${team2Id}`)
+      ];
 
       this.team1 = team1;
       this.team2 = team2;
@@ -185,36 +192,39 @@ export class MatchSimulator {
 
   async quickMatch(team1Name: string, team2Name: string, season: number = 2022): Promise<MatchResult> {
     try {
-      // Demo modda direkt simülasyon yap - API çağırma
-      if (this.api.isDemoMode()) {
-        console.log('🎮 Demo modda maç simülasyonu başlıyor...');
-        
-        // Demo takımlar oluştur
-        this.team1 = this.createDemoTeam(team1Name);
-        this.team2 = this.createDemoTeam(team2Name);
-        
-        // Maçı simüle et
-        return await this.simulateDemoMatch();
-      }
+      // API çağrıları tamamen devre dışı - sadece demo mode
+      console.log('🎮 Demo modda maç simülasyonu başlıyor...');
+      console.log('⚠️  API çağrıları devre dışı - demo takımlar kullanılıyor');
       
-      // Gerçek API modunda takım arama
-      const [team1Results, team2Results] = await Promise.all([
-        this.searchAndSelectTeam(team1Name),
-        this.searchAndSelectTeam(team2Name)
-      ]);
+      // Demo takımlar oluştur
+      this.team1 = this.createDemoTeam(team1Name);
+      this.team2 = this.createDemoTeam(team2Name);
+      
+      // Maçı simüle et
+      return await this.simulateDemoMatch();
+      
+      /* Gerçek API modu - şimdilik devre dışı
+      if (!this.api.isDemoMode()) {
+        // Gerçek API modunda takım arama
+        const [team1Results, team2Results] = await Promise.all([
+          this.searchAndSelectTeam(team1Name),
+          this.searchAndSelectTeam(team2Name)
+        ]);
 
-      if (team1Results.length === 0) {
-        throw new Error(`"${team1Name}" takımı bulunamadı`);
+        if (team1Results.length === 0) {
+          throw new Error(`"${team1Name}" takımı bulunamadı`);
+        }
+        if (team2Results.length === 0) {
+          throw new Error(`"${team2Name}" takımı bulunamadı`);
+        }
+
+        // İlk sonucu seç
+        const team1Id = team1Results[0].id;
+        const team2Id = team2Results[0].id;
+
+        return await this.simulateMatch(team1Id, team2Id, season);
       }
-      if (team2Results.length === 0) {
-        throw new Error(`"${team2Name}" takımı bulunamadı`);
-      }
-
-      // İlk sonucu seç
-      const team1Id = team1Results[0].id;
-      const team2Id = team2Results[0].id;
-
-      return await this.simulateMatch(team1Id, team2Id, season);
+      */
     } catch (error) {
       console.error('❌ Hızlı maç hatası:', error);
       throw error;
@@ -259,7 +269,7 @@ export class MatchSimulator {
       // Diğer olaylar
       if (Math.random() < 0.05) {
         const eventTeam = Math.random() < 0.5 ? this.team1.name : this.team2.name;
-        const eventTypes = ['Sarı kart', 'Köşe vuruşu', 'Faul', 'Ofsayt'];
+        const eventTypes = ['Sarı kart', 'Köşe vuruşu', 'Faul'];
         const eventType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
         
         this.events.push({

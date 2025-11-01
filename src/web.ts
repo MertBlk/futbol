@@ -11,16 +11,28 @@ interface MatchResult {
   stats: { [key: string]: any };
 }
 
+interface SquadSelection {
+  teamA: { [position: string]: string };
+  teamB: { [position: string]: string };
+}
+
 class WebInterface {
   private simulator: MatchSimulator | null = null;
   private matchEngine: MatchEngine | null = null;
   private isMatchRunning: boolean = false;
+  private userPrediction: 'teamA' | 'teamB' | 'draw' | null = null;
+  private squadSelection: SquadSelection = {
+    teamA: {},
+    teamB: {}
+  };
   
   constructor() {
     console.log('🔧 WebInterface başlatılıyor...');
     this.initializeAPI();
     this.initializeEventListeners();
     this.initializeCanvas();
+    this.initializePredictionPanel();
+    this.initializeSquadPanel();
   }
 
   private async initializeAPI(): Promise<void> {
@@ -31,14 +43,14 @@ class WebInterface {
 
   private initializeCanvas(): void {
     console.log('🎨 Canvas başlatılıyor...');
-    const canvas = document.getElementById('footballCanvas') as HTMLCanvasElement;
+    const canvas = document.getElementById('matchCanvas') as HTMLCanvasElement;
     
     if (!canvas) {
       console.error('❌ Canvas element bulunamadı!');
       return;
     }
 
-    this.matchEngine = new MatchEngine('footballCanvas');
+    this.matchEngine = new MatchEngine('matchCanvas');
     console.log('✅ MatchEngine oluşturuldu');
     
     // Canvas event handler'ları ayarla
@@ -131,6 +143,198 @@ class WebInterface {
     });
 
     console.log('🎧 Tüm event listener\'lar eklendi');
+  }
+
+  private initializePredictionPanel(): void {
+    console.log('🎯 Tahmin paneli başlatılıyor...');
+    
+    const predictTeamA = document.getElementById('predictTeamA');
+    const predictDraw = document.getElementById('predictDraw');
+    const predictTeamB = document.getElementById('predictTeamB');
+    
+    if (predictTeamA) {
+      predictTeamA.addEventListener('click', () => this.selectPrediction('teamA'));
+    }
+    
+    if (predictDraw) {
+      predictDraw.addEventListener('click', () => this.selectPrediction('draw'));
+    }
+    
+    if (predictTeamB) {
+      predictTeamB.addEventListener('click', () => this.selectPrediction('teamB'));
+    }
+    
+    console.log('✅ Tahmin paneli hazır');
+  }
+
+  private selectPrediction(prediction: 'teamA' | 'teamB' | 'draw'): void {
+    this.userPrediction = prediction;
+    console.log(`🎯 Kullanıcı tahmini: ${prediction}`);
+    
+    // Buton görsellerini güncelle
+    document.querySelectorAll('.prediction-btn').forEach(btn => {
+      btn.classList.remove('selected');
+    });
+    
+    const selectedBtn = prediction === 'teamA' ? 'predictTeamA' 
+                      : prediction === 'teamB' ? 'predictTeamB' 
+                      : 'predictDraw';
+    
+    document.getElementById(selectedBtn)?.classList.add('selected');
+    
+    // Sonuç mesajını göster
+    const resultDiv = document.getElementById('predictionResult');
+    if (resultDiv) {
+      const predictionText = prediction === 'teamA' ? 'A Takımı Kazanır' 
+                           : prediction === 'teamB' ? 'B Takımı Kazanır' 
+                           : 'Berabere';
+      
+      resultDiv.textContent = `✅ Tahmininiz: ${predictionText}`;
+      resultDiv.classList.add('show');
+    }
+    
+    // Kadro panelini göster
+    const squadPanel = document.getElementById('squadPanel');
+    if (squadPanel) {
+      squadPanel.style.display = 'block';
+      squadPanel.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+
+  private initializeSquadPanel(): void {
+    console.log('⚽ Kadro paneli başlatılıyor...');
+    
+    // 11 oyuncu pozisyonu
+    const positions = [
+      { num: 1, pos: 'Kaleci', default: 'Goalkeeper' },
+      { num: 2, pos: 'Sağ Bek', default: 'Full Back' },
+      { num: 3, pos: 'Stoper', default: 'Centre Back' },
+      { num: 4, pos: 'Stoper', default: 'Centre Back' },
+      { num: 5, pos: 'Sol Bek', default: 'Full Back' },
+      { num: 6, pos: 'Defansif Orta Saha', default: 'Defensive Midfielder' },
+      { num: 7, pos: 'Orta Saha', default: 'Box-to-Box' },
+      { num: 8, pos: 'Orta Saha', default: 'Playmaker' },
+      { num: 9, pos: 'Kanat', default: 'Winger' },
+      { num: 10, pos: 'Forvet', default: 'Striker' },
+      { num: 11, pos: 'Kanat', default: 'Winger' }
+    ];
+    
+    // Oyuncu tipleri
+    const playerTypes = [
+      'Goalkeeper', 'Centre Back', 'Full Back', 'Wing Back',
+      'Defensive Midfielder', 'Box-to-Box', 'Playmaker',
+      'Winger', 'Inside Forward', 'Striker', 'Poacher',
+      'Target Man', 'False Nine'
+    ];
+    
+    // Her iki takım için kadro oluştur
+    ['teamASquad', 'teamBSquad'].forEach((squadId, teamIndex) => {
+      const squadContainer = document.getElementById(squadId);
+      if (!squadContainer) return;
+      
+      const teamKey = teamIndex === 0 ? 'teamA' : 'teamB';
+      
+      squadContainer.innerHTML = '';
+      
+      positions.forEach(({ num, pos, default: defaultType }) => {
+        const playerSlot = document.createElement('div');
+        playerSlot.className = 'player-slot';
+        
+        const playerNumber = document.createElement('div');
+        playerNumber.className = 'player-number';
+        playerNumber.textContent = num.toString();
+        
+        const playerInfo = document.createElement('div');
+        playerInfo.className = 'player-info';
+        
+        const playerPosition = document.createElement('div');
+        playerPosition.className = 'player-position';
+        playerPosition.textContent = pos;
+        
+        const playerTypeSelect = document.createElement('select');
+        playerTypeSelect.className = 'player-type-select';
+        playerTypeSelect.dataset.team = teamKey;
+        playerTypeSelect.dataset.position = num.toString();
+        
+        playerTypes.forEach(type => {
+          const option = document.createElement('option');
+          option.value = type;
+          option.textContent = type;
+          if (type === defaultType) {
+            option.selected = true;
+            this.squadSelection[teamKey][num.toString()] = type;
+          }
+          playerTypeSelect.appendChild(option);
+        });
+        
+        playerTypeSelect.addEventListener('change', (e) => {
+          const select = e.target as HTMLSelectElement;
+          const team = select.dataset.team as 'teamA' | 'teamB';
+          const position = select.dataset.position!;
+          this.squadSelection[team][position] = select.value;
+          console.log(`⚽ ${team} - Pozisyon ${position}: ${select.value}`);
+        });
+        
+        playerInfo.appendChild(playerPosition);
+        playerInfo.appendChild(playerTypeSelect);
+        
+        playerSlot.appendChild(playerNumber);
+        playerSlot.appendChild(playerInfo);
+        
+        squadContainer.appendChild(playerSlot);
+      });
+    });
+    
+    // Maç başlatma butonunu bağla
+    const startMatchWithSquad = document.getElementById('startMatchWithSquad');
+    if (startMatchWithSquad) {
+      startMatchWithSquad.addEventListener('click', () => this.startMatchWithCustomSquad());
+    }
+    
+    console.log('✅ Kadro paneli hazır');
+  }
+
+  private async startMatchWithCustomSquad(): Promise<void> {
+    console.log('🚀 Özel kadro ile maç başlatılıyor...');
+    console.log('📋 A Takımı Kadrosu:', this.squadSelection.teamA);
+    console.log('📋 B Takımı Kadrosu:', this.squadSelection.teamB);
+    console.log('🎯 Kullanıcı Tahmini:', this.userPrediction);
+    
+    // Match container'ı göster
+    const matchContainer = document.getElementById('matchContainer');
+    if (matchContainer) {
+      matchContainer.style.display = 'block';
+      matchContainer.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    // Tahmin ve kadro panellerini gizle
+    const predictionPanel = document.getElementById('predictionPanel');
+    const squadPanel = document.getElementById('squadPanel');
+    
+    if (predictionPanel) predictionPanel.style.display = 'none';
+    if (squadPanel) squadPanel.style.display = 'none';
+    
+    // Match state'i güncelle
+    this.isMatchRunning = true;
+    
+    // UI'ı temizle
+    this.clearResults();
+    this.updateScore(0, 0);
+    this.updateTime(0);
+
+    try {
+      // Canvas match'i başlat ve kadro bilgisini gönder
+      console.log('🎮 Canvas maçı başlatılıyor...');
+      this.matchEngine?.setupMatchWithSquad('A Takımı', 'B Takımı', this.squadSelection);
+      this.matchEngine?.startMatch();
+      
+      console.log('✅ Canvas maçı özel kadro ile başlatıldı');
+      
+    } catch (error) {
+      console.error('❌ Maç başlatma hatası:', error);
+      this.showError(`Hata: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`);
+      this.isMatchRunning = false;
+    }
   }
 
   private async startUnifiedMatch(): Promise<void> {

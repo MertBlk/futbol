@@ -13,6 +13,18 @@ export class FootballApi {
   }
 
   private async makeRequest(endpoint: string): Promise<any> {
+    // API çağrıları devre dışı - API hakkı koruması
+    console.log('⚠️  API çağrısı engellendi (demo mode):', endpoint);
+    
+    // Demo mode'da boş sonuç dön
+    if (this.isDemoMode()) {
+      return [];
+    }
+    
+    // Gerçek API çağrısı (şimdilik devre dışı)
+    throw new Error('API çağrıları şu anda devre dışı - sadece demo mode kullanılabilir');
+    
+    /* API çağrısı kodu - gerekirse aktif edilebilir
     const url = `${this.baseUrl}${endpoint}`;
     
     try {
@@ -33,6 +45,7 @@ export class FootballApi {
       console.error('❌ API request failed:', error);
       throw error;
     }
+    */
   }
 
   private convertPosition(apiPosition: string): 'GK' | 'DEF' | 'MID' | 'FWD' {

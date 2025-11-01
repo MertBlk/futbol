@@ -1,15 +1,5 @@
 import { Player2D, Ball, Goal, MatchEvent2D, GameState, PlayerType } from './canvasTypes.js';
-import { PlayerBehavior } from './engine/PlayerBehavior.js';
-import { BallPhysics } from './engine/BallPhysics.js';
-import { PlayerActions } from './engine/PlayerActions.js';
-import { TacticalAI } from './engine/TacticalAI.js';
-import { PlayerMovement } from './engine/PlayerMovement.js';
-import { PossessionControl } from './engine/PossessionControl.js';
 
-/**
- * Ana Match Engine - Modüler Yapı
- * Kod artık mantıklı modüllere ayrılmış durumda
- */
 export class MatchEngine {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
@@ -24,9 +14,6 @@ export class MatchEngine {
   private possession: 'home' | 'away' | null = null;
   private playerWithBall: Player2D | null = null;
   private isGoalCelebration: boolean = false;
-  private lastTackleTime: Map<Player2D, number> = new Map();
-  private isFoulStop: boolean = false;
-  private foulStopTimeout: any = null;
   
   // Event handlers
   private eventHandlers: {
@@ -58,14 +45,6 @@ export class MatchEngine {
     awayPasses: 0
   };
 
-  // Modüler sistemler
-  private playerBehavior!: PlayerBehavior;
-  private ballPhysics!: BallPhysics;
-  private playerActions!: PlayerActions;
-  private tacticalAI!: TacticalAI;
-  private playerMovement!: PlayerMovement;
-  private possessionControl!: PossessionControl;
-
   constructor(canvasId: string) {
     this.canvas = document.getElementById(canvasId) as HTMLCanvasElement;
     this.ctx = this.canvas.getContext('2d')!;
@@ -92,14 +71,6 @@ export class MatchEngine {
       events: [],
       speed: 2
     };
-
-    // Modülleri başlat
-    this.playerBehavior = new PlayerBehavior(this.fieldWidth, this.fieldHeight);
-    this.ballPhysics = new BallPhysics(this.fieldWidth, this.fieldHeight);
-    this.playerActions = new PlayerActions(this.fieldWidth, this.fieldHeight);
-    this.tacticalAI = new TacticalAI(this.fieldWidth, this.fieldHeight);
-    this.playerMovement = new PlayerMovement(this.fieldWidth, this.fieldHeight);
-    this.possessionControl = new PossessionControl(this.fieldWidth, this.fieldHeight);
     
     this.setupField();
     this.setupGoals();
@@ -225,134 +196,6 @@ export class MatchEngine {
     this.awayTeamName = awayTeam;
     this.createPlayers();
     this.resetMatch();
-  }
-
-  public setupMatchWithSquad(
-    homeTeam: string, 
-    awayTeam: string, 
-    squadSelection: { teamA: { [position: string]: string }, teamB: { [position: string]: string } }
-  ): void {
-    this.homeTeamName = homeTeam;
-    this.awayTeamName = awayTeam;
-    this.createPlayersWithSquad(squadSelection);
-    this.resetMatch();
-  }
-
-  private createPlayersWithSquad(squadSelection: { teamA: { [position: string]: string }, teamB: { [position: string]: string } }): void {
-    this.players = [];
-    
-    // Ev sahibi takım (mavi) - 4-4-2 formasyonu
-    const homePositions = [
-      { x: 80, y: this.fieldHeight / 2, pos: 'GK' },
-      { x: 180, y: this.fieldHeight * 0.2, pos: 'DEF' },
-      { x: 180, y: this.fieldHeight * 0.4, pos: 'DEF' },
-      { x: 180, y: this.fieldHeight * 0.6, pos: 'DEF' },
-      { x: 180, y: this.fieldHeight * 0.8, pos: 'DEF' },
-      { x: 320, y: this.fieldHeight * 0.25, pos: 'MID' },
-      { x: 320, y: this.fieldHeight * 0.45, pos: 'MID' },
-      { x: 320, y: this.fieldHeight * 0.55, pos: 'MID' },
-      { x: 320, y: this.fieldHeight * 0.75, pos: 'MID' },
-      { x: 450, y: this.fieldHeight * 0.4, pos: 'FWD' },
-      { x: 450, y: this.fieldHeight * 0.6, pos: 'FWD' }
-    ];
-
-    // Deplasman takımı (kırmızı)
-    const awayPositions = [
-      { x: this.fieldWidth - 80, y: this.fieldHeight / 2, pos: 'GK' },
-      { x: this.fieldWidth - 180, y: this.fieldHeight * 0.2, pos: 'DEF' },
-      { x: this.fieldWidth - 180, y: this.fieldHeight * 0.4, pos: 'DEF' },
-      { x: this.fieldWidth - 180, y: this.fieldHeight * 0.6, pos: 'DEF' },
-      { x: this.fieldWidth - 180, y: this.fieldHeight * 0.8, pos: 'DEF' },
-      { x: this.fieldWidth - 320, y: this.fieldHeight * 0.25, pos: 'MID' },
-      { x: this.fieldWidth - 320, y: this.fieldHeight * 0.45, pos: 'MID' },
-      { x: this.fieldWidth - 320, y: this.fieldHeight * 0.55, pos: 'MID' },
-      { x: this.fieldWidth - 320, y: this.fieldHeight * 0.75, pos: 'MID' },
-      { x: this.fieldWidth - 450, y: this.fieldHeight * 0.4, pos: 'FWD' },
-      { x: this.fieldWidth - 450, y: this.fieldHeight * 0.6, pos: 'FWD' }
-    ];
-
-    homePositions.forEach((pos, index) => {
-      // Kullanıcının seçtiği tipi al
-      const playerIndex = (index + 1).toString();
-      const selectedType = squadSelection.teamA[playerIndex] || 'Box-to-Box';
-      const playerType = selectedType as PlayerType;
-      const attributes = this.getPlayerAttributes(playerType);
-      
-      this.players.push({
-        id: index,
-        name: `${this.homeTeamName} ${index + 1}`,
-        x: pos.x,
-        y: pos.y,
-        baseX: pos.x,
-        baseY: pos.y,
-        team: 'home',
-        position: pos.pos as any,
-        role: 'player',
-        playerType: playerType,
-        targetX: pos.x,
-        targetY: pos.y,
-        vx: 0,
-        vy: 0,
-        speed: attributes.speed,
-        maxSpeed: attributes.maxSpeed,
-        acceleration: 0.3,
-        deceleration: 0.8,
-        color: '#2196F3',
-        hasBall: false,
-        stamina: 100,
-        skill: attributes.skill,
-        aggression: attributes.aggression,
-        passing: attributes.passing,
-        shooting: attributes.shooting,
-        positioning: attributes.positioning,
-        workRate: attributes.workRate,
-        lastAction: 0
-      });
-    });
-
-    awayPositions.forEach((pos, index) => {
-      // Kullanıcının seçtiği tipi al
-      const playerIndex = (index + 1).toString();
-      const selectedType = squadSelection.teamB[playerIndex] || 'Box-to-Box';
-      const playerType = selectedType as PlayerType;
-      const attributes = this.getPlayerAttributes(playerType);
-      
-      this.players.push({
-        id: index + 11,
-        name: `${this.awayTeamName} ${index + 1}`,
-        x: pos.x,
-        y: pos.y,
-        baseX: pos.x,
-        baseY: pos.y,
-        team: 'away',
-        position: pos.pos as any,
-        role: 'player',
-        playerType: playerType,
-        targetX: pos.x,
-        targetY: pos.y,
-        vx: 0,
-        vy: 0,
-        speed: attributes.speed,
-        maxSpeed: attributes.maxSpeed,
-        acceleration: 0.3,
-        deceleration: 0.8,
-        color: '#F44336',
-        hasBall: false,
-        stamina: 100,
-        skill: attributes.skill,
-        aggression: attributes.aggression,
-        passing: attributes.passing,
-        shooting: attributes.shooting,
-        positioning: attributes.positioning,
-        workRate: attributes.workRate,
-        lastAction: 0
-      });
-    });
-
-    this.ball.x = this.fieldWidth / 2;
-    this.ball.y = this.fieldHeight / 2;
-    this.ball.vx = 0;
-    this.ball.vy = 0;
   }
 
   private createPlayers(): void {
@@ -595,64 +438,6 @@ export class MatchEngine {
   }
 
   private updatePossession(): void {
-    // FAUL DURMA - Oyun duruyorsa update yapma
-    if (this.isFoulStop) {
-      return;
-    }
-    
-    // Top kapma mekanizması - COOLDOWN ile
-    if (this.playerWithBall) {
-      // Rakip oyuncular topu çalmaya çalışır
-      const opponents = this.players.filter(p => 
-        p.team !== this.playerWithBall!.team && 
-        this.getDistance(p, this.playerWithBall!) < 30
-      );
-      
-      const currentTime = this.gameState.minute;
-      
-      for (const opponent of opponents) {
-        // COOLDOWN KONTROLÜ: 2 saniye (0.1 dakika) bekleme
-        const lastTackle = this.lastTackleTime.get(opponent) || 0;
-        if (currentTime - lastTackle < 0.1) {
-          continue; // Bu oyuncu daha tackle yapamaz
-        }
-        
-        // Top çalma şansı - AZALTILMIŞ (0.15 -> 0.08)
-        const tackleChance = (opponent.skill / 100) * (opponent.aggression / 100) * 0.08;
-        
-        if (Math.random() < tackleChance) {
-          // FAUL KONTROLÜ: %30 şans ile faul
-          const isFoul = Math.random() < 0.3;
-          
-          if (isFoul) {
-            // FAUL!
-            this.handleFoul(opponent, this.playerWithBall);
-            return;
-          }
-          
-          // BAŞARILI TOP KAPMA!
-          this.ball.x = opponent.x;
-          this.ball.y = opponent.y;
-          this.ball.vx = 0;
-          this.ball.vy = 0;
-          this.playerWithBall = opponent;
-          this.possession = opponent.team;
-          
-          // Cooldown kaydet
-          this.lastTackleTime.set(opponent, currentTime);
-          
-          this.emitEvent({
-            type: 'info',
-            minute: Math.floor(this.gameState.minute),
-            description: `🦵 ${opponent.name} topu çaldı!`,
-            team: opponent.team
-          });
-          
-          return;
-        }
-      }
-    }
-    
     // En yakın oyuncuyu bul - ama birden fazla oyuncu aynı mesafedeyse en becerikli alır
     let closestPlayer: Player2D | null = null;
     let closestDist = Infinity;
@@ -685,14 +470,6 @@ export class MatchEngine {
     // Top kontrolü - oyuncu topun 25 piksel yakınındaysa
     if (closestPlayer && closestDist < 25) {
       const player = closestPlayer as Player2D;
-      
-      // TOP UÇARKEN KONTROL ETMEYİ ÖNLE
-      // Topun hızı yüksekse (pas/şut havadaysa) oyuncu hemen kapmasın
-      const ballSpeed = Math.sqrt(this.ball.vx ** 2 + this.ball.vy ** 2);
-      if (ballSpeed > 3.5) {
-        // Top çok hızlı - henüz kapmasın (pas/şut animasyonu devam ediyor)
-        return;
-      }
       
       // KALECI ÖZEL KONTROL: Rakip kalecinin önündeyse topu ona verme
       if (player.position === 'GK') {
@@ -912,14 +689,27 @@ export class MatchEngine {
     const teammates = this.players.filter(p => 
       p.team === passer.team && p !== passer
     );
-    const opponents = this.players.filter(p => p.team !== passer.team);
     
     if (teammates.length === 0) return;
     
-    // Modülü kullan
-    const result = this.playerActions.attemptPass(passer, this.ball, teammates, opponents);
+    // En iyi pas hedefini bul - daha akıllı seçim
+    const bestTarget = this.findBestPassTarget(passer, teammates);
+    if (!bestTarget) return;
     
-    if (result.success) {
+    const dist = this.getDistance(passer, bestTarget);
+    const power = Math.max(3, Math.min(dist / 15, 12)); // Daha gerçekçi pas gücü
+    
+    // Pas hassasiyeti ekle
+    const accuracy = passer.skill / 100;
+    const errorFactor = (1 - accuracy) * 20;
+    
+    const dx = bestTarget.x - this.ball.x + (Math.random() - 0.5) * errorFactor;
+    const dy = bestTarget.y - this.ball.y + (Math.random() - 0.5) * errorFactor;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    
+    if (len > 0) {
+      this.ball.vx = (dx / len) * power;
+      this.ball.vy = (dy / len) * power;
       this.playerWithBall = null;
       
       // İstatistikleri güncelle
@@ -930,11 +720,11 @@ export class MatchEngine {
       }
       
       // Pas olayını kaydet
-      if (result.description) {
+      if (Math.random() < 0.3) {
         this.emitEvent({
           type: 'info',
           minute: Math.floor(this.gameState.minute),
-          description: result.description,
+          description: `⚽ ${passer.name} pas attı`,
           team: passer.team
         });
       }
@@ -1044,10 +834,37 @@ export class MatchEngine {
 
   private attemptShot(shooter: Player2D): void {
     const targetGoal = this.goals.find(g => g.team !== shooter.team)!;
-    const opponents = this.players.filter(p => p.team !== shooter.team);
+    const distance = this.getDistanceToGoal(shooter);
     
-    // Modülü kullan
-    const shotDescription = this.playerActions.attemptShot(shooter, this.ball, targetGoal, opponents);
+    // Şut hassasiyeti - mesafe ve oyuncu becerisine bağlı
+    const accuracy = (shooter.skill / 100) * (1 - Math.min(distance / 300, 0.8));
+    const pressure = this.calculatePressure(shooter, this.getNearbyOpponents(shooter, 40));
+    
+    // Hedef nokta hesaplaması
+    const goalCenterX = targetGoal.x + targetGoal.width / 2;
+    const goalCenterY = targetGoal.y + targetGoal.height / 2;
+    
+    // Hassasiyet hatası
+    const maxError = (1 - accuracy + pressure) * 60;
+    const errorX = (Math.random() - 0.5) * maxError;
+    const errorY = (Math.random() - 0.5) * maxError;
+    
+    const targetX = goalCenterX + errorX;
+    const targetY = goalCenterY + errorY;
+    
+    const dx = targetX - this.ball.x;
+    const dy = targetY - this.ball.y;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    
+    // Şut gücü - mesafeye ve oyuncu becerisine bağlı
+    const basePower = Math.min(12 + distance / 30, 20);
+    const powerVariation = shooter.skill / 100 * 4;
+    const power = basePower + (Math.random() - 0.5) * powerVariation;
+    
+    if (len > 0) {
+      this.ball.vx = (dx / len) * power;
+      this.ball.vy = (dy / len) * power;
+    }
     
     this.playerWithBall = null;
     
@@ -1058,11 +875,13 @@ export class MatchEngine {
       this.matchStats.awayShots++;
     }
     
-    // Şut mesajı
+    // Şut kalitesine göre farklı mesajlar
+    const shotQuality = accuracy > 0.7 ? 'güçlü' : accuracy > 0.4 ? 'orta' : 'zayıf';
+    
     this.emitEvent({
       type: 'info',
       minute: Math.floor(this.gameState.minute),
-      description: shotDescription,
+      description: `⚽ ${shooter.name} ${shotQuality} bir şut çekti! (${Math.round(distance)}m)`,
       team: shooter.team
     });
   }
@@ -1146,62 +965,6 @@ export class MatchEngine {
     }, 3000);
   }
 
-  private handleFoul(foulPlayer: Player2D, victimPlayer: Player2D): void {
-    // FAUL! Oyunu durdur
-    this.isFoulStop = true;
-    this.playerWithBall = null;
-    this.ball.vx = 0;
-    this.ball.vy = 0;
-    
-    // İstatistik
-    if (foulPlayer.team === 'home') {
-      this.matchStats.homeCards++;
-    } else {
-      this.matchStats.awayCards++;
-    }
-    
-    // Faul eventi
-    this.emitEvent({
-      type: 'card',
-      minute: Math.floor(this.gameState.minute),
-      description: `🟨 ${foulPlayer.name} (${foulPlayer.team === 'home' ? this.homeTeamName : this.awayTeamName}) faul yaptı!`,
-      team: foulPlayer.team
-    });
-    
-    // Sert faul kontrolü - %15 şans ile kırmızı kart
-    if (Math.random() < 0.15) {
-      this.emitEvent({
-        type: 'card',
-        minute: Math.floor(this.gameState.minute),
-        description: `🟥 ${foulPlayer.name} kırmızı kart gördü!`,
-        team: foulPlayer.team
-      });
-    }
-    
-    // 2 saniye dur, sonra serbest vuruş
-    setTimeout(() => {
-      this.isFoulStop = false;
-      
-      // Topu foul yiyen takıma ver
-      const freeKickTaker = this.players.find(p => 
-        p.team === victimPlayer.team && 
-        this.getDistance(p, this.ball) < 100
-      ) || victimPlayer;
-      
-      this.ball.x = freeKickTaker.x;
-      this.ball.y = freeKickTaker.y;
-      this.playerWithBall = freeKickTaker;
-      this.possession = freeKickTaker.team;
-      
-      this.emitEvent({
-        type: 'info',
-        minute: Math.floor(this.gameState.minute),
-        description: `⚽ Serbest vuruş: ${freeKickTaker.team === 'home' ? this.homeTeamName : this.awayTeamName}`,
-        team: freeKickTaker.team
-      });
-    }, 2000);
-  }
-
   private prepareKickoff(): void {
     // Topu saha ortasına koy
     this.ball.x = this.fieldWidth / 2;
@@ -1248,7 +1011,8 @@ export class MatchEngine {
     
     const events = [
       { desc: '🟨 Sarı kart!', type: 'card' },
-      { desc: ' Korner', type: 'info' }
+      { desc: '🚫 Ofsayt', type: 'info' },
+      { desc: '🚩 Korner', type: 'info' }
     ];
     
     const evt = events[Math.floor(Math.random() * events.length)];
@@ -1585,14 +1349,9 @@ export class MatchEngine {
     const passTendency = (player.passing || 60) / 100;
     const shootingTendency = (player.shooting || 60) / 100;
     
-    // HIZLI KARAR VERME: Her frame'de %85 şans ile aksiyon alma (pas sonrası kilitlenmeyi önlemek için)
-    if (Math.random() > 0.15) {
-      return; // Bu frame'de aksiyon alma - oyuncu topla biraz ilerlesin
-    }
-    
     // ACİL PAS: Çok fazla rakip varsa (2+) veya yüksek baskı
     if (closeOpponents >= 2 || pressureLevel > 0.7) {
-      if (nearbyTeammates.length > 0 && Math.random() < 0.9) {
+      if (nearbyTeammates.length > 0) {
         this.attemptPass(player);
         return;
       }
@@ -1626,31 +1385,18 @@ export class MatchEngine {
       }
     }
     
-    // ŞUT FIRSATI: Kaleye yakın, açı var - TİPE GÖRE
-    if (distanceToGoal < 200 && this.hasShootingAngle(player)) {
-      let shootChance = 0.5; // Temel şans %50
-      
-      // Mesafe faktörü (yakınsa daha fazla)
-      if (distanceToGoal < 100) {
-        shootChance *= 2.0; // Çok yakınsa %100
-      } else if (distanceToGoal < 150) {
-        shootChance *= 1.3;
-      }
+    // ŞUT FIRSATI: Kaleye yakın, açı var, baskı az - TİPE GÖRE
+    if (distanceToGoal < 140 && this.hasShootingAngle(player) && pressureLevel < 0.5) {
+      let shootChance = (player.skill / 100) * (1 - pressureLevel) * 0.35;
       
       // Tip bazlı şut eğilimi
       if (player.playerType === 'poacher' || player.playerType === 'target-man') {
-        shootChance *= 1.6; // Golcüler daha çok şut atar
-      } else if (player.playerType === 'winger' || player.playerType === 'attacking-mid') {
-        shootChance *= 1.3;
-      } else if (player.playerType === 'playmaker') {
-        shootChance *= 0.6; // Oyun kuranlar daha az şut atar
+        shootChance *= 1.5; // Golcüler daha çok şut atar
+      } else if (player.playerType === 'playmaker' || player.playerType === 'false-nine') {
+        shootChance *= 0.7; // Oyun kuranlar daha az şut atar
       }
       
-      // Baskı azaltır
-      shootChance *= (1 - pressureLevel * 0.5);
-      
-      // Shooting özelliği etkili
-      shootChance *= shootingTendency;
+      shootChance *= shootingTendency; // Shooting özelliği etkili
       
       if (Math.random() < shootChance) {
         this.attemptShot(player);
@@ -1662,55 +1408,38 @@ export class MatchEngine {
     if (player.position === 'MID' || player.position === 'FWD') {
       // Tip bazlı karar verme
       if (player.playerType === 'playmaker') {
-        // Playmaker: %90 pas yapar
-        if (nearbyTeammates.length > 0 && Math.random() < 0.9) {
+        // Playmaker: Her zaman pas seçeneği arar
+        if (nearbyTeammates.length > 0 && Math.random() < 0.75) {
           this.attemptPass(player);
           return;
         }
       } else if (player.playerType === 'winger') {
-        // Winger: Baskı varsa pas, yoksa dribbling
-        if (pressureLevel > 0.3 && nearbyTeammates.length > 0) {
-          this.attemptPass(player);
-          return;
-        } else if (Math.random() < 0.7) {
+        // Winger: Dribblingi sever
+        if (pressureLevel < 0.4 && Math.random() < 0.65) {
           this.dribbleBall(player, nearbyOpponents);
           return;
         }
       } else if (player.playerType === 'box-to-box') {
-        // Box-to-box: Baskıya göre karar
+        // Box-to-box: Her şeyi yapar, dengeli
         if (pressureLevel > 0.4 && nearbyTeammates.length > 0) {
           this.attemptPass(player);
           return;
         }
-        if (pressureLevel < 0.3 && Math.random() < 0.5) {
+        if (pressureLevel < 0.3 && Math.random() < 0.6) {
           this.dribbleBall(player, nearbyOpponents);
-          return;
-        } else if (nearbyTeammates.length > 0) {
-          this.attemptPass(player);
-          return;
-        }
-      } else if (player.playerType === 'poacher' || player.playerType === 'target-man') {
-        // Golcüler: Önce şut, sonra pas
-        if (distanceToGoal < 180 && this.hasShootingAngle(player) && Math.random() < 0.6) {
-          this.attemptShot(player);
-          return;
-        } else if (nearbyTeammates.length > 0 && Math.random() < 0.7) {
-          this.attemptPass(player);
           return;
         }
       }
       
-      // Genel karar - pas öncelikli
-      if (nearbyTeammates.length > 0 && Math.random() < 0.75) {
+      // Genel karar - pas eğilimine göre
+      if (Math.random() < passTendency * 0.7 && nearbyTeammates.length > 0) {
         this.attemptPass(player);
-      } else if (pressureLevel < 0.4) {
+      } else {
         this.dribbleBall(player, nearbyOpponents);
-      } else if (nearbyTeammates.length > 0) {
-        this.attemptPass(player);
       }
     } else {
       // Varsayılan: Güvenli pas
-      if (nearbyTeammates.length > 0 && Math.random() < 0.85) {
+      if (nearbyTeammates.length > 0) {
         this.attemptPass(player);
       } else {
         this.dribbleBall(player, nearbyOpponents);
